@@ -1,5 +1,8 @@
 include $(TOPDIR)/rules.mk
 
+# Huanle Zhang
+# www.huanlezhang.com
+
 PKG_NAME:=dtc_config_files
 PKG_RELEASE:=1
 
@@ -11,6 +14,8 @@ define Package/$(PKG_NAME)
 	SECTION:=dtc
 	CATEGORY:=dtc
 	TITLE:=easy tools and configurations
+	MAINTAINER:=Huanle Zhang
+	URL:=www.huanlezhang.com
 	DEFAULT:=y
 endef
 

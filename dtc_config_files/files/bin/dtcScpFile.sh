@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Huanle Zhang
+# www.huanlezhang.com
+
 host_name="simula"
 host_ip="192.168.1.10"
 host_path="/home/simula/lede-sdk/bin/packages/x86_64/base"
