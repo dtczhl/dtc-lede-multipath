@@ -1,7 +1,7 @@
-#!/bin/sh
+#/bin/sh
 
-# Author: Huanle Zhang
-# Personal Website: www.huanlezhang.com
+# Huanle Zhang
+# www.huanlezhang.com
 
 usage () {
     cat <<EOF
@@ -15,6 +15,22 @@ EOF
 
 error_info () {
     echo "  Error! Show help information with -h option"
+}
+
+patch_kernel(){
+    curDir=$(pwd)
+    buildDir=build_dir/target-x86_64_musl/linux-x86_64/linux-4.9.44
+    
+    echo " ----------- patching kernel "
+    cd ..
+    make target/linux/clean 
+    make target/linux/prepare QUILT=1 
+    cd $buildDir 
+    quilt push -a
+    quilt new platform/999-dtc.patch
+    quilt refresh
+    
+    cd $curDir 
 }
 
 # starts here
@@ -33,6 +49,7 @@ while getopts ":hiu" opt; do
     i)  # install
         cp -v -r ./dtc_config_files ../package/feeds/
         cp -v -r ./dtc_packages/* ../package/feeds/
+        patch_kernel 
         echo "-------- installing done --------"
         exit 0
         ;;
