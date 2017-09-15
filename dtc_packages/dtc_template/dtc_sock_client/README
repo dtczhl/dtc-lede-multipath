@@ -1,8 +1,0 @@
-2 places to change
-
-1. Makefile: 
-    package name
-    package title
-
-2. src/Makefile: 
-    program name

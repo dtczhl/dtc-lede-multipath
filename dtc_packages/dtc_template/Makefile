@@ -14,7 +14,7 @@ define Package/$(PKG_NAME)
 	SECTION:=dtc
 	CATEGORY:=dtc
 	TITLE:=EMPTY template
-	DEFAULT:=y
+	DEFAULT:=n
 endef
 
 define Package/$(PKG_NAME)/description
