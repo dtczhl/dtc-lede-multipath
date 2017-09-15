@@ -32,12 +32,13 @@ while getopts ":hiu" opt; do
         ;;
     i)  # install
         cp -v -r ./dtc_config_files ../package/feeds/
-        echo "-------- done --------"
+        cp -v -r ./dtc_packages/* ../package/feeds/
+        echo "-------- installing done --------"
         exit 0
         ;;
     u)  # remove
-        rm -i -v -rf ../package/feeds/dtc_config_files 
-        echo "-------- done --------"
+        rm -i -v -rf ../package/feeds/dtc_* 
+        echo "-------- removing done --------"
         exit 0
         ;;
     \?) # error, unknown options
