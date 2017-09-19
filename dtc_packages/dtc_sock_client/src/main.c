@@ -1,6 +1,8 @@
 /* 
  * simple udp client
- *
+ * 
+ * Huanle Zhang
+ * www.huanlezhang.com
  */
 
 #include <stdio.h>

@@ -1,5 +1,8 @@
 include $(TOPDIR)/rules.mk
 
+# Huanle Zhang
+# www.huanlezhang.com
+
 PKG_NAME:=dtc_template
 PKG_RELEASE:=1
 

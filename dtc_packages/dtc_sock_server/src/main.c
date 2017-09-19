@@ -1,5 +1,8 @@
 /* 
  * simple udp server
+ *
+ * Huanle Zhang
+ * www.huanlezhang.com
  */
 
 

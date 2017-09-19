@@ -2,6 +2,7 @@
 
 /* main directory */
 static struct dentry *main_dir;
+static u8 nBuffer = 0;
 
 /* enable */
 static struct dentry *file_enable;
@@ -11,6 +12,7 @@ u32 dtc_debugfs_enable = 0;
 static struct dentry *file_time_loc;
 u32 dtc_debugfs_time_loc = 0;
 static struct timeval timestamp;
+static struct timeval timestamp2;
 
 /* target */
 static struct dentry *file_target;
@@ -25,9 +27,15 @@ static u8 info_buf[INFO_BUF_SIZE];
 
 /* log1 */
 static struct dentry *file_log1;
-static const u64 log1_buf_size = 100 * 1024 * 1024;
+static const u64 log1_buf_size = 40 * 1024 * 1024;
 static u64 log1_buf_pos = 0;
 static struct debugfs_blob_wrapper log1_blob;
+
+/* log2 */
+static struct dentry *file_log2;
+static const u64 log2_buf_size = 40 * 1024 * 1024;
+static u64 log2_buf_pos = 0;
+static struct debugfs_blob_wrapper log2_blob;
 
 /* -------- implementation -------- */
 
@@ -87,8 +95,14 @@ static ssize_t target_write_file(struct file *file, const char __user *user_buf,
     dtc_debugfs_target_port = htons(port_temp);
     
     /* rewind to buffer beginning */
-    log1_buf_pos = 0;
-    log1_blob.size = 0;
+    if (nBuffer >= 1){
+        log1_buf_pos = 0;
+        log1_blob.size = 0;
+    }
+    if (nBuffer >= 2){
+        log2_buf_pos = 0;
+        log2_blob.size = 0;
+    }
     
     return count;
 }
@@ -101,7 +115,7 @@ static struct file_operations target_fops = {
 
 
 /* initialization */
-int dtc_init_debugfs(char *dirname){
+int dtc_init_debugfs(char *dirname, int buffer_num){
     /* main directory */
     main_dir = debugfs_create_dir(dirname, 0);
     if (!main_dir){
@@ -136,6 +150,8 @@ int dtc_init_debugfs(char *dirname){
         printk(KERN_ALERT "dtc: info file failed!\n");
         return -1;
     }
+    nBuffer = buffer_num;
+    if (nBuffer == 0) return 0;
     /* log1 */
     log1_blob.data = vmalloc(log1_buf_size);
     log1_blob.size = 0;
@@ -145,6 +161,18 @@ int dtc_init_debugfs(char *dirname){
         printk(KERN_ALERT "dtc: log1 file failed!\n");
         return -1;
     }
+    if (nBuffer == 1) return 0;
+    /* log2 */
+    log2_blob.data = vmalloc(log2_buf_size);
+    log2_blob.size = 0;
+    file_log2 = debugfs_create_blob("log2", 0444, main_dir,
+            &log2_blob);
+    if (!file_log2){
+        printk(KERN_ALERT "dtc: log2 file failed!\n");
+        return -1;
+    }
+    if (nBuffer == 2) return 0;
+
     return 0;
 }
 
@@ -186,3 +214,51 @@ void dtc_log_time_u32(u32 data){
     log1_blob.size = log1_buf_pos;
     return;
 }
+// append data
+#define INT_MSG_SIZE    ( DTC_DEC_32 + 2 )
+static u8 int_msg[INT_MSG_SIZE];
+static u32 int_msg_len;
+void dtc_log_buffer_size(int data){
+    if (log1_buf_pos + INT_MSG_SIZE >= log1_buf_size) return;
+    int_msg_len = snprintf(int_msg, INT_MSG_SIZE, "%u\n",
+            data);
+    memcpy((char*)log1_blob.data+log1_buf_pos, int_msg, int_msg_len);
+
+    log1_buf_pos += int_msg_len;
+    log1_blob.size = log1_buf_pos;
+    return;
+}
+
+/* timestamp -> log2 */    
+#define TIME_MSG2_SIZE    (DTC_DEC_32 + 1 + DTC_DEC_64 + 1 + DTC_DEC_64 + 2 )
+static u8 time_msg2[TIME_MSG2_SIZE];
+static u32 time_msg2_len = 0; 
+void dtc_log2_time(u32 time_loc){
+    // time_loc time_sec time_usec
+   
+    if (log2_buf_pos + TIME_MSG2_SIZE >= log2_buf_size) return;
+
+    do_gettimeofday(&timestamp2);
+    time_msg2_len = snprintf(time_msg2, TIME_MSG2_SIZE, "%u %lu %lu\n",
+            time_loc, timestamp2.tv_sec, timestamp2.tv_usec);
+    memcpy((char*)log2_blob.data+log2_buf_pos, time_msg2, time_msg2_len);
+    
+    log2_buf_pos += time_msg2_len;
+    log2_blob.size = log2_buf_pos;
+    return;
+}
+// append data
+#define U32_MSG2_SIZE    ( DTC_DEC_32 + 2 )
+static u8 u32_msg2[U32_MSG2_SIZE];
+static u32 u32_msg2_len; 
+void dtc_log2_time_u32(u32 data){
+   if (log2_buf_pos + U32_MSG2_SIZE >= log2_buf_size) return;
+    u32_msg2_len = snprintf(u32_msg2, U32_MSG2_SIZE, "%u\n",
+            ntohl(data));
+    memcpy((char*)log2_blob.data+log2_buf_pos, u32_msg2, u32_msg2_len);
+
+    log2_buf_pos += u32_msg2_len;
+    log2_blob.size = log2_buf_pos;
+    return;
+}
+

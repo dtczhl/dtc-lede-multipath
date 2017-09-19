@@ -1,6 +1,9 @@
 /* 
  * simple udp server
  *        echo back
+ *
+ * Huanle Zhang
+ * www.huanlezhang.com
  */
 
 

@@ -5,11 +5,12 @@
 
 usage () {
     cat <<EOF
-Usage: program [-h] [-i] [-u]
+Usage: program [-h] [-k] [-p] [-u]
     -h   help information
-    -i   install 
-    -u   uninstall    
-Example: ./main.sh -u
+    -k   install kernel patches 
+    -p   install packages 
+    -u   uninstall all     
+Example: ./main.sh -u to install 
 EOF
 }
 
@@ -17,51 +18,39 @@ error_info () {
     echo "  Error! Show help information with -h option"
 }
 
-patch_kernel(){
-    curDir=$(pwd)
-    buildDir=build_dir/target-x86_64_musl/linux-x86_64/linux-4.9.44
-    
-    echo " ----------- patching kernel "
-    cd ..
-    make target/linux/clean 
-    make target/linux/prepare QUILT=1 
-    cd $buildDir 
-    quilt push -a
-    quilt new platform/999-dtc.patch
-    quilt refresh
-    
-    cd $curDir 
-}
-
 # starts here
 if [ $# -lt 1 ]; then
     error_info 
-    exit 1
+    exit 
 fi
 
-while getopts ":hiu" opt; do
+while getopts ":hiup" opt; do
     case $opt in
 
     h)  # help information
         usage
-        exit 0
+        exit
         ;;
-    i)  # install
+    p)  # packages
+        echo "-------- install customized packages"
         cp -v -r ./dtc_config_files ../package/feeds/
         cp -v -r ./dtc_packages/* ../package/feeds/
-        patch_kernel 
-        echo "-------- installing done --------"
-        exit 0
+        echo "-------- install customized packages done --------"
+        exit
+        ;;
+    k)  # kernel patches
+        echo "-------- install kernel patches"
+        exit
         ;;
     u)  # remove
         rm -i -v -rf ../package/feeds/dtc_* 
         echo "-------- removing done --------"
-        exit 0
+        exit
         ;;
     \?) # error, unknown options
         echo "-------- unknown options"
         error_info
-        exit 1
+        exit
         ;;
     esac
 done

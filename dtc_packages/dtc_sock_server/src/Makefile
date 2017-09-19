@@ -1,5 +1,8 @@
 myProgram = dtc_sock_server
 
+# Huanle Zhang
+# www.huanlezhang.com
+
 main: main.o
 	$(CC) $(LDFLAGS) main.o -o $(myProgram)
 

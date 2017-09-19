@@ -39,10 +39,15 @@ extern u32 dtc_debugfs_target_ip;
 extern u16 dtc_debugfs_target_port;
 
 /* functions */
-int dtc_init_debugfs(char *dirname);
+int dtc_init_debugfs(char *dirname, int buff_num);
 void dtc_cleanup_debugfs(void);
+// log 1
 void dtc_log_time(u32 time_loc);
 void dtc_log_time_u32(u32 data);
+void dtc_log_buffer_size(int buffersize);
+// log 2
+void dtc_log2_time(u32 time_loc);
+void dtc_log2_time_u32(u32 data);
 
 /* inline functions */
 // point to udp data payload

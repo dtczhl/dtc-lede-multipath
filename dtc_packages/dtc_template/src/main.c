@@ -1,3 +1,10 @@
+/* Template 
+ *
+ * Huanle Zhang
+ * www.huanlezhang.com
+ *
+ */
+
 #include <stdio.h>
 
 int main(){
