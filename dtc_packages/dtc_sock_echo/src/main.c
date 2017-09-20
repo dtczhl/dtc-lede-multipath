@@ -16,7 +16,8 @@
 #include <unistd.h>
 
 #define SERVER_PORT 50000
-#define BUF_LEN     512
+//#define BUF_LEN     512
+#define BUF_LEN 1000
 
 // debuf
 #define PACKET_RECV_MOD 1000000

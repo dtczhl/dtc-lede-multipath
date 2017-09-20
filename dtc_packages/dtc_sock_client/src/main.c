@@ -15,7 +15,8 @@
 #include <time.h>
 
 #define SERVER_PORT 50000
-#define BUF_LEN     508 // maximum safe buffer size 
+//#define BUF_LEN     508 // maximum safe buffer size 
+#define BUF_LEN 1000
 
 #define LONG_SIZE   8
 
