@@ -2,7 +2,9 @@
 
 /* main directory */
 static struct dentry *main_dir;
-static u8 nBuffer = 0;
+static u8 nLogFile = 0; // how many log files we need
+static u8 ratio_long2int = 0; // 
+static u8 ratio_long2byte = 0; // 
 
 /* enable */
 static struct dentry *file_enable;
@@ -11,8 +13,8 @@ u32 dtc_debugfs_enable = 0;
 /* timestamp */
 static struct dentry *file_time_loc;
 u32 dtc_debugfs_time_loc = 0;
-static struct timeval timestamp;
-static struct timeval timestamp2;
+static struct timeval timestamp1; // split, send path? 
+static struct timeval timestamp2; //		recv path?
 
 /* target */
 static struct dentry *file_target;
@@ -22,18 +24,19 @@ u16 dtc_debugfs_target_port = 0;
 
 /* info */
 static struct dentry *file_info;
-#define INFO_BUF_SIZE   33
-static u8 info_buf[INFO_BUF_SIZE];
+#define INFO_BUF_SIZE   9
+static u8 info_buf[INFO_BUF_SIZE]; // make it simple, output static infor only
+								   // otherwise, use log file
 
-/* log1 */
+/* log1 in binary format */
 static struct dentry *file_log1;
-static const u64 log1_buf_size = 40 * 1024 * 1024;
+static const u64 log1_buf_size = 40 * 1024 * 1024; // change this to be big enough
 static u64 log1_buf_pos = 0;
 static struct debugfs_blob_wrapper log1_blob;
 
-/* log2 */
+/* log2 in binary format */
 static struct dentry *file_log2;
-static const u64 log2_buf_size = 40 * 1024 * 1024;
+static const u64 log2_buf_size = 40 * 1024 * 1024; // change this to be big enough
 static u64 log2_buf_pos = 0;
 static struct debugfs_blob_wrapper log2_blob;
 
@@ -42,12 +45,9 @@ static struct debugfs_blob_wrapper log2_blob;
 /* ---- info ---- */
 static ssize_t info_read_file(struct file *file, char __user *user_buf,
         size_t count, loff_t *ppos){
-    int buf_len = snprintf(info_buf, INFO_BUF_SIZE,
+    int buf_len = snprintf(info_buf, INFO_BUF_SIZE, // !!! change INFO_BUF_SIZE correspondingly
             "HZ: %-4d\n"
-            "int: %-1d\n"
-            "char: %-1d\n"
-            "long: %-1d\n"
-            , HZ, (int)sizeof(int), (int)sizeof(char), (int)sizeof(long));
+            , HZ);
     return simple_read_from_buffer(user_buf, count, ppos, info_buf, buf_len);
 }
 static struct file_operations info_fops = {
@@ -95,11 +95,11 @@ static ssize_t target_write_file(struct file *file, const char __user *user_buf,
     dtc_debugfs_target_port = htons(port_temp);
     
     /* rewind to buffer beginning */
-    if (nBuffer >= 1){
+    if (nLogFile >= 1){
         log1_buf_pos = 0;
         log1_blob.size = 0;
     }
-    if (nBuffer >= 2){
+    if (nLogFile >= 2){
         log2_buf_pos = 0;
         log2_blob.size = 0;
     }
@@ -150,9 +150,16 @@ int dtc_init_debugfs(char *dirname, int buffer_num){
         printk(KERN_ALERT "dtc: info file failed!\n");
         return -1;
     }
-    nBuffer = buffer_num;
-    if (nBuffer == 0) return 0;
-    /* log1 */
+
+	/* ---- other main initialization --- */
+    nLogFile = buffer_num;
+	ratio_long2int = (u8) (sizeof(long) / sizeof(int));
+	ratio_long2byte = (u8) (sizeof(long) / sizeof(int));
+
+	/* initialize log files at below */
+    if (nLogFile == 0) return 0;
+    
+	/* log1 */
     log1_blob.data = vmalloc(log1_buf_size);
     log1_blob.size = 0;
     file_log1 = debugfs_create_blob("log1", 0444, main_dir,
@@ -161,7 +168,8 @@ int dtc_init_debugfs(char *dirname, int buffer_num){
         printk(KERN_ALERT "dtc: log1 file failed!\n");
         return -1;
     }
-    if (nBuffer == 1) return 0;
+    if (nLogFile == 1) return 0;
+
     /* log2 */
     log2_blob.data = vmalloc(log2_buf_size);
     log2_blob.size = 0;
@@ -171,7 +179,7 @@ int dtc_init_debugfs(char *dirname, int buffer_num){
         printk(KERN_ALERT "dtc: log2 file failed!\n");
         return -1;
     }
-    if (nBuffer == 2) return 0;
+    if (nLogFile == 2) return 0;
 
     return 0;
 }
@@ -182,7 +190,14 @@ void dtc_cleanup_debugfs(void){
     return;
 }
 
-/* timestamp -> log1 */    
+/* log1 */
+void dtc_debugfs_log1(u32 pData, u32 length){
+	if (log1_buf_pos + length + 2 * ratio_long2byte // timeval
+			>= log1_buf_size) return; // run out buffer, simply return, need improve
+	// ------------------------------------ continue here ...............
+}
+
+/* timestamp1 -> log1 */    
 #define TIME_MSG_SIZE    (DTC_DEC_32 + 1 + DTC_DEC_64 + 1 + DTC_DEC_64 + 2 )
 static u8 time_msg[TIME_MSG_SIZE];
 static u32 time_msg_len = 0; 
