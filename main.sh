@@ -10,7 +10,7 @@ target=1
 # 2: Netgear R7800
 # 3: APU2
 
-kernel_version=4.9.51
+kernel_version=4.9.54
 kernel_linux_path=
 
 kernel_debugfs_patch='990-dtc_debugfs.patch'
@@ -85,6 +85,10 @@ while getopts ":hikupsw" opt; do
         exit
         ;;
 	i)	# initialize LEDE (download, config)
+		if [ -d ../../dtcLede ] || [ -d ../dtcLede]; then
+			echo -e "${ERROR_COLOR} -------- seems you have already donwloaded LEDE!!! ${NC}"
+			exit
+		fi 
 		echo -e "${HEAD_COLOR} -------- download and config LEDE ${NC}"
 		git clone 'https://git.lede-project.org/source.git' ../dtcLede
 		mv ../dtc-lede-multipath ../dtcLede/
