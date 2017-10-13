@@ -85,9 +85,10 @@ while getopts ":hikupsw" opt; do
         exit
         ;;
 	i)	# initialize LEDE (download, config)
-		echo -e "${HEAD_COLOR} -------- download LEDE to dtcLede folder ${NC}"
+		echo -e "${HEAD_COLOR} -------- download LEDE ${NC}"
 		git clone 'https://git.lede-project.org/source.git' dtcLede
-		mv -r dtcLede/* ../
+		mv dtcLede/* ../
+		rmdir dtcLede 
 		exit;;
 
     p)  # packages
