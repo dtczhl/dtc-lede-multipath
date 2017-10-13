@@ -48,8 +48,8 @@ kernel_linux_build_dir () {
 		echo " Format: build_dir"
 		exit
 	fi
-	case $1 in
-	
+
+	case $1 in 
 	1) # Raspberry Pi 2
 		kernel_linux_path='build_dir/target-arm_cortex-a7+neon-vfpv4_musl_eabi/linux-brcm2708_bcm2709/linux-'${kernel_version}
 		;;
@@ -85,11 +85,29 @@ while getopts ":hikupsw" opt; do
         exit
         ;;
 	i)	# initialize LEDE (download, config)
-		echo -e "${HEAD_COLOR} -------- download LEDE ${NC}"
+		echo -e "${HEAD_COLOR} -------- download and config LEDE ${NC}"
 		git clone 'https://git.lede-project.org/source.git' ../dtcLede
 		mv ../dtc-lede-multipath ../dtcLede/
+		(
+			cd ..
+			cp dtc-lede-multipath/dtc_setup_lede/kernel-version.mk include/
+			./scripts/feeds update -a
+			./scripts/feeds install -a
+			case $target in
+			1) # raspberry pi 2
+				cp dtc-lede-multipath/dtc_setup_lede/.config_rasp2 .config
+				;;
+			2) # netgear r7800
+				;;
+			3) # apu2
+				;;
+			*) # error
+				echo -e "${ERROR_COLOR} -------- unkown target in i)"
+				;;
+			esac 
+		)
+		echo -e "${TAIL_COLOR} -------- download and config LEDE done -------- ${NC}"
 		exit;;
-
     p)  # packages
         echo -e "${HEAD_COLOR} -------- install customized packages ${NC}"
         cp -v -r ./dtc_config_files ../package/feeds/
