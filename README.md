@@ -4,6 +4,9 @@ Huanle Zhang
 
 www.huanlezhang.com
 
+## Configs
+* Linux kernel version: 4.9.54
+
 ## Packages
 
 * dtc_sock_client: send UDP packets with first 4 bytes of ID
