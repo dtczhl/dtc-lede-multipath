@@ -29,14 +29,15 @@ ERROR_COLOR=$RED
 
 usage () {
     cat <<EOF
-Usage: program [-h] [-k] [-s] [-p] [-u]
-    -h   help information
-	-k   install kernel files (linux+wireless)
-	-s	 save kernel files (linux)
-	-w   save kernel files (wireless) 
-    -p   install packages 
-    -u   uninstall all     
-Example: ./main.sh -u to install 
+Usage: program [-h] [-i] [-k] [-s] [-w] [-p] [-u]
+	-h	help information
+	-i	initialize LEDE
+	-k	install kernel files (linux+wireless)
+	-s	save kernel files (linux)
+	-w	save kernel files (wireless) 
+	-p	install packages 
+	-u	uninstall all     
+Example: ./main.sh -k to install kernel files
 EOF
 }
 
@@ -76,13 +77,18 @@ fi
 kernel_linux_build_dir $target
 
 
-while getopts ":hkupsw" opt; do
+while getopts ":hikupsw" opt; do
     case $opt in
 
     h)  # help information
         usage
         exit
         ;;
+	i)	# initialize LEDE (download, config)
+		echo -e "${HEAD_COLOR} -------- download LEDE to dtcLede folder ${NC}"
+		git clone 'https://git.lede-project.org/source.git' dtcLede
+		exit;;
+
     p)  # packages
         echo -e "${HEAD_COLOR} -------- install customized packages ${NC}"
         cp -v -r ./dtc_config_files ../package/feeds/
