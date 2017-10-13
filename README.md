@@ -5,7 +5,7 @@ Huanle Zhang
 www.huanlezhang.com
 
 ## Configs
-* Kernel version: 4.9.54
+* Linux kernel version: 4.9.54
 
 ## Packages
 
