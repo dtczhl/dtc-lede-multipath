@@ -4,6 +4,7 @@
 static struct dentry *main_dir;
 static u8 nLogFile = 0; // how many log files we need
 static u8 ratio_long2int = 0; // 
+static u8 ratio_int2byte = 0;
 static u8 ratio_long2byte = 0; // 
 
 /* enable */
@@ -24,9 +25,9 @@ u16 dtc_debugfs_target_port = 0;
 
 /* info */
 static struct dentry *file_info;
-#define INFO_BUF_SIZE   9
-static u8 info_buf[INFO_BUF_SIZE]; // make it simple, output static infor only
-								   // otherwise, use log file
+#define INFO_BUF_SIZE   1024
+static u8 info_buf[INFO_BUF_SIZE]; // make it simple, output static info only
+static u64 info_buf_pos = 0;				// otherwise, use log file
 
 /* log1 in binary format */
 static struct dentry *file_log1;
@@ -43,12 +44,24 @@ static struct debugfs_blob_wrapper log2_blob;
 /* -------- implementation -------- */
 
 /* ---- info ---- */
+void dtc_debugfs_add_info(char *pInfo){
+	if (info_buf_pos + strlen(pInfo) >= INFO_BUF_SIZE){
+		return; // need improve
+	}
+
+	memcpy(info_buf + info_buf_pos, pInfo, strlen(pInfo));
+	info_buf_pos += strlen(pInfo);
+	return; 
+}
+
 static ssize_t info_read_file(struct file *file, char __user *user_buf,
         size_t count, loff_t *ppos){
-    int buf_len = snprintf(info_buf, INFO_BUF_SIZE, // !!! change INFO_BUF_SIZE correspondingly
+    /*
+	int buf_len = snprintf(info_buf, INFO_BUF_SIZE, // !!! change INFO_BUF_SIZE correspondingly
             "HZ: %-4d\n"
             , HZ);
-    return simple_read_from_buffer(user_buf, count, ppos, info_buf, buf_len);
+	*/
+    return simple_read_from_buffer(user_buf, count, ppos, info_buf, info_buf_pos);
 }
 static struct file_operations info_fops = {
     .read = info_read_file,
@@ -155,6 +168,10 @@ int dtc_init_debugfs(char *dirname, int buffer_num){
     nLogFile = buffer_num;
 	ratio_long2int = (u8) (sizeof(long) / sizeof(int));
 	ratio_long2byte = (u8) (sizeof(long) / sizeof(int));
+	ratio_int2byte = sizeof(int);
+
+	/* add info */
+	dtc_debugfs_add_info("HZ=Something\n");
 
 	/* initialize log files at below */
     if (nLogFile == 0) return 0;
@@ -191,13 +208,40 @@ void dtc_cleanup_debugfs(void){
 }
 
 /* log1 */
-void dtc_debugfs_log1(u32 pData, u32 length){
-	if (log1_buf_pos + length + 2 * ratio_long2byte // timeval
+// format: length(4) timeval(long+long) data
+void dtc_debugfs_log1(u32 *pData, u32 length){
+	if (log1_buf_pos + length + 4 + 2 * ratio_long2byte // length timeval
 			>= log1_buf_size) return; // run out buffer, simply return, need improve
-	// ------------------------------------ continue here ...............
+	
+	memcpy((u8*)log1_blob.data+log1_buf_pos, &length, 4); // length
+	log1_buf_pos += 4;
+	do_gettimeofday(&timestamp1);
+	memcpy((u8*)log1_blob.data+log1_buf_pos, &timestamp1, 2*ratio_long2byte); // timestamp: 2 long
+	log1_buf_pos += 2*ratio_long2byte;
+	memcpy((u8*)log1_blob.data+log1_buf_pos, pData, length);
+	log1_buf_pos += length;
+	log1_blob.size = log1_buf_pos;
 }
 
-/* timestamp1 -> log1 */    
+/* log2 */
+// format: length(4) timeval(long+long) data
+void dtc_debugfs_log2(u32 *pData, u32 length){
+	if (log2_buf_pos + length + 4 + 2 * ratio_long2byte // timeval
+			>= log2_buf_size) return; // run out buffer, simply return, need improve
+	
+	memcpy((u8*)log2_blob.data+log2_buf_pos, &length, 4);
+	log2_buf_pos += 4;
+	do_gettimeofday(&timestamp2);
+	memcpy((u8*)log2_blob.data+log2_buf_pos, &timestamp2, 2*ratio_long2byte); // timestamp: 2 long
+	log2_buf_pos += 2*ratio_long2byte;
+	memcpy((u8*)log2_blob.data+log2_buf_pos, pData, length);
+	log2_buf_pos += length;
+	log2_blob.size = log2_buf_pos;
+}
+
+
+/* timestamp1 -> log1 */  
+/*
 #define TIME_MSG_SIZE    (DTC_DEC_32 + 1 + DTC_DEC_64 + 1 + DTC_DEC_64 + 2 )
 static u8 time_msg[TIME_MSG_SIZE];
 static u32 time_msg_len = 0; 
@@ -243,8 +287,9 @@ void dtc_log_buffer_size(int data){
     log1_blob.size = log1_buf_pos;
     return;
 }
-
-/* timestamp -> log2 */    
+*/
+/* timestamp -> log2 */  
+/*
 #define TIME_MSG2_SIZE    (DTC_DEC_32 + 1 + DTC_DEC_64 + 1 + DTC_DEC_64 + 2 )
 static u8 time_msg2[TIME_MSG2_SIZE];
 static u32 time_msg2_len = 0; 
@@ -276,4 +321,4 @@ void dtc_log2_time_u32(u32 data){
     log2_blob.size = log2_buf_pos;
     return;
 }
-
+*/

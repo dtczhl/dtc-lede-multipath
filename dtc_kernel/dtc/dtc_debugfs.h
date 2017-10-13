@@ -58,6 +58,7 @@ void dtc_cleanup_debugfs(void);
 void dtc_debugfs_log1(u32 *pData, u32 length);
 void dtc_debugfs_log2(u32 *pData, u32 length);
 
+void dtc_debugfs_add_info(char *pInfo);
 
 /* ---- inline functions ---- */
 
