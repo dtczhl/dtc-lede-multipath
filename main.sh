@@ -5,10 +5,11 @@
 
 
 # !!! change ...
-target=1
+target=4
 # 1: Raspberry Pi 2
 # 2: Netgear R7800
 # 3: APU2
+# 4: Raspberry Pi 3
 
 kernel_version=4.9.54
 kernel_linux_path=
@@ -29,9 +30,10 @@ ERROR_COLOR=$RED
 
 usage () {
     cat <<EOF
+Note: remember to change target in main.sh 
 Usage: program [-h] [-i] [-k] [-s] [-w] [-p] [-u]
 	-h	help information
-	-i	initialize LEDE
+	-i	initialize/download LEDE
 	-k	install kernel files (linux+wireless)
 	-s	save kernel files (linux)
 	-w	save kernel files (wireless) 
@@ -56,6 +58,9 @@ kernel_linux_build_dir () {
 	2) # Netgear R7800
 		;;
 	3) # APU 2
+		;;
+	4) # Raspbery Pi 3
+		kernel_linux_path='build_dir/target-aarch64_cortex-a53_musl/linux-brcm2708_bcm2710/linux-'${kernel_version}
 		;;
 	*) 
 		echo " unknown target in kernel_build_dir()"
@@ -99,11 +104,14 @@ while getopts ":hikupsw" opt; do
 			./scripts/feeds install -a
 			case $target in
 			1) # raspberry pi 2
-				cp dtc-lede-multipath/dtc_setup_lede/.config_rasp2 .config
+				cp dtc-lede-multipath/dtc_setup_lede/config_rasp2 .config
 				;;
 			2) # netgear r7800
 				;;
 			3) # apu2
+				;;
+			4) # raspberry pi 3
+				cp dtc-lede-multipath/dtc_setup_lede/config_rasp3 .config 
 				;;
 			*) # error
 				echo -e "${ERROR_COLOR} -------- unkown target in i)"
