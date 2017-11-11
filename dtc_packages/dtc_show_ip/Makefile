@@ -9,7 +9,7 @@ PKG_RELEASE:=1
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_RELEASE).tar.xz
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_URL:=https://github.com/dtczhl/dtc-show-ip.git
-PKG_SOURCE_VERSION:=e770e083421bac4e200d929a3b6d300cd42ec80e
+PKG_SOURCE_VERSION:=66760e23a650a31ff949fb1df78078212ea14886
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
@@ -35,7 +35,7 @@ define Build/Prepare
 endef
 
 define Package/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/inface
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/90-dtcShowIp $(1)/etc/hotplug.d/iface/
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/dtc-show-ip.sh $(1)/usr/bin/

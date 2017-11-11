@@ -174,6 +174,7 @@ while getopts ":hikupsw" opt; do
 		echo -e "${HEAD_COLOR} -------- removing all ${NC}"
 		# remove packages
         rm -i -v -rf ../package/feeds/dtc_* 
+		rm -i -vf ../dl/dtc_*
 		# remove kernel files (linux)
 		(
 			cd ..
