@@ -460,3 +460,29 @@ Index: linux-4.9.54/net/socket.c
  out:
  	return err;
  
+Index: linux-4.9.54/net/ipv4/udp.c
+===================================================================
+--- linux-4.9.54.orig/net/ipv4/udp.c
++++ linux-4.9.54/net/ipv4/udp.c
+@@ -116,6 +116,9 @@
+ #include <net/sock_reuseport.h>
+ #include <net/addrconf.h>
+ 
++// dtc
++#include "../dtc/dtc_debugfs.h"
++
+ struct udp_table udp_table __read_mostly;
+ EXPORT_SYMBOL(udp_table);
+ 
+@@ -832,6 +835,11 @@ static int udp_send_skb(struct sk_buff *
+ 	if (uh->check == 0)
+ 		uh->check = CSUM_MANGLED_0;
+ 
++// dtc
++	if (dtc_debugfs_enable & DTC_ENABLE_UDP){
++		dtc_debugfs_log1((u32*)("1234"), 4);
++	}
++
+ send:
+ 	err = ip_send_skb(sock_net(sk), skb);
+ 	if (err) {
