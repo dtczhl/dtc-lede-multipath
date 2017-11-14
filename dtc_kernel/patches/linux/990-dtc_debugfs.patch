@@ -193,7 +193,7 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.c
 +	/* ---- other main initialization --- */
 +    nLogFile = buffer_num;
 +	ratio_long2int = (u8) (sizeof(long) / sizeof(int));
-+	ratio_long2byte = (u8) (sizeof(long) / sizeof(int));
++	ratio_long2byte = (u8) sizeof(long);
 +	ratio_int2byte = sizeof(int);
 +
 +	/* add info */
@@ -235,7 +235,7 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.c
 +
 +/* log1 */
 +// format: length(4) timeval(long+long) data
-+void dtc_debugfs_log1(u32 *pData, u32 length){
++void dtc_debugfs_log1(u8 *pData, u32 length){
 +	if (log1_buf_pos + length + 4 + 2 * ratio_long2byte // length timeval
 +			>= log1_buf_size) return; // run out buffer, simply return, need improve
 +	
@@ -251,7 +251,7 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.c
 +
 +/* log2 */
 +// format: length(4) timeval(long+long) data
-+void dtc_debugfs_log2(u32 *pData, u32 length){
++void dtc_debugfs_log2(u8 *pData, u32 length){
 +	if (log2_buf_pos + length + 4 + 2 * ratio_long2byte // timeval
 +			>= log2_buf_size) return; // run out buffer, simply return, need improve
 +	
@@ -410,8 +410,8 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.h
 +		One for send path
 +		The other for receive path
 +*/
-+void dtc_debugfs_log1(u32 *pData, u32 length);
-+void dtc_debugfs_log2(u32 *pData, u32 length);
++void dtc_debugfs_log1(u8 *pData, u32 length);
++void dtc_debugfs_log2(u8 *pData, u32 length);
 +
 +void dtc_debugfs_add_info(char *pInfo);
 +
@@ -464,25 +464,80 @@ Index: linux-4.9.54/net/ipv4/udp.c
 ===================================================================
 --- linux-4.9.54.orig/net/ipv4/udp.c
 +++ linux-4.9.54/net/ipv4/udp.c
-@@ -116,6 +116,9 @@
+@@ -116,6 +116,11 @@
  #include <net/sock_reuseport.h>
  #include <net/addrconf.h>
  
 +// dtc
 +#include "../dtc/dtc_debugfs.h"
++char dtcBuf[20];
++int dtcNBuf = 0;
 +
  struct udp_table udp_table __read_mostly;
  EXPORT_SYMBOL(udp_table);
  
-@@ -832,6 +835,11 @@ static int udp_send_skb(struct sk_buff *
- 	if (uh->check == 0)
- 		uh->check = CSUM_MANGLED_0;
+Index: linux-4.9.54/net/core/dev.c
+===================================================================
+--- linux-4.9.54.orig/net/core/dev.c
++++ linux-4.9.54/net/core/dev.c
+@@ -144,6 +144,9 @@
+ 
+ #include "net-sysfs.h"
  
 +// dtc
-+	if (dtc_debugfs_enable & DTC_ENABLE_UDP){
-+		dtc_debugfs_log1((u32*)("1234"), 4);
++#include "../../net/dtc/dtc_debugfs.h"
++
+ /* Instead of increasing this, you should create a hash table. */
+ #define MAX_GRO_SKBS 8
+ 
+@@ -2942,6 +2945,14 @@ static int xmit_one(struct sk_buff *skb,
+ 	if (!list_empty(&ptype_all) || !list_empty(&dev->ptype_all))
+ 		dev_queue_xmit_nit(skb, dev);
+ 
++	// dtc
++	/*
++	if (dtc_debugfs_enable == DTC_ENABLE_UDP &&
++			dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
++			dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(skb))->dest){
++		dtc_debugfs_log1((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
++	}*/
++
+ #ifdef CONFIG_ETHERNET_PACKET_MANGLE
+ 	if (!dev->eth_mangle_tx ||
+ 	    (skb = dev->eth_mangle_tx(dev, skb)) != NULL)
+Index: linux-4.9.54/net/ipv4/ip_output.c
+===================================================================
+--- linux-4.9.54.orig/net/ipv4/ip_output.c
++++ linux-4.9.54/net/ipv4/ip_output.c
+@@ -80,6 +80,9 @@
+ #include <linux/netlink.h>
+ #include <linux/tcp.h>
+ 
++// dtc
++#include "../dtc/dtc_debugfs.h"
++
+ static int
+ ip_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
+ 	    unsigned int mtu,
+@@ -118,6 +121,13 @@ int ip_local_out(struct net *net, struct
+ {
+ 	int err;
+ 
++	// dtc
++	if (dtc_debugfs_enable == DTC_ENABLE_UDP &&
++			dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
++			dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(skb))->dest){
++		dtc_debugfs_log1((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
 +	}
 +
- send:
- 	err = ip_send_skb(sock_net(sk), skb);
- 	if (err) {
+ 	err = __ip_local_out(net, sk, skb);
+ 	if (likely(err == 1))
+ 		err = dst_output(net, sk, skb);
+@@ -474,7 +484,6 @@ packet_routed:
+ 	/* TODO : should we use skb->sk here instead of sk ? */
+ 	skb->priority = sk->sk_priority;
+ 	skb->mark = sk->sk_mark;
+-
+ 	res = ip_local_out(net, sk, skb);
+ 	rcu_read_unlock();
+ 	return res;

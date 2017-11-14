@@ -167,7 +167,7 @@ int dtc_init_debugfs(char *dirname, int buffer_num){
 	/* ---- other main initialization --- */
     nLogFile = buffer_num;
 	ratio_long2int = (u8) (sizeof(long) / sizeof(int));
-	ratio_long2byte = (u8) (sizeof(long) / sizeof(int));
+	ratio_long2byte = (u8) sizeof(long);
 	ratio_int2byte = sizeof(int);
 
 	/* add info */
@@ -209,7 +209,7 @@ void dtc_cleanup_debugfs(void){
 
 /* log1 */
 // format: length(4) timeval(long+long) data
-void dtc_debugfs_log1(u32 *pData, u32 length){
+void dtc_debugfs_log1(u8 *pData, u32 length){
 	if (log1_buf_pos + length + 4 + 2 * ratio_long2byte // length timeval
 			>= log1_buf_size) return; // run out buffer, simply return, need improve
 	
@@ -225,7 +225,7 @@ void dtc_debugfs_log1(u32 *pData, u32 length){
 
 /* log2 */
 // format: length(4) timeval(long+long) data
-void dtc_debugfs_log2(u32 *pData, u32 length){
+void dtc_debugfs_log2(u8 *pData, u32 length){
 	if (log2_buf_pos + length + 4 + 2 * ratio_long2byte // timeval
 			>= log2_buf_size) return; // run out buffer, simply return, need improve
 	

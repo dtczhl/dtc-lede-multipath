@@ -55,8 +55,8 @@ void dtc_cleanup_debugfs(void);
 		One for send path
 		The other for receive path
 */
-void dtc_debugfs_log1(u32 *pData, u32 length);
-void dtc_debugfs_log2(u32 *pData, u32 length);
+void dtc_debugfs_log1(u8 *pData, u32 length);
+void dtc_debugfs_log2(u8 *pData, u32 length);
 
 void dtc_debugfs_add_info(char *pInfo);
 
