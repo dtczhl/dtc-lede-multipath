@@ -31,11 +31,11 @@ void die(const char *s){
 }
 
 void printFormat(void){
-	printf("Format: program -i IP_address -p Port_number -n Interval(us) -d decimation_left_shift \n");
+	printf("Format: program -i IP_address -p Port_number -n Interval(us) -d Decimation_left_shift \n");
 	printf("	-i (required)	ip address\n");
 	printf("	-p (required)	port number\n");
 	printf("	-n (optional)	packet interval in us, default: 0\n");
-	printf("	-d (optional)	decimation left shift of 1, default: 28\n");
+	printf("	-d (optional)	decimation left shift of 1, default: 31\n");
 }
 
 void argumentProcess(int argc, char **argv){
@@ -78,7 +78,7 @@ void argumentProcess(int argc, char **argv){
 			}
 		}
 	}
-	// check arugments
+	// check arguments
 	if (si_you.sin_addr.s_addr == 0 || si_you.sin_port == 0){
 		die("ip address and port number must not be 0");
 	}
@@ -136,6 +136,5 @@ int main(int argc, char **argv){
 
     close(s);
     return 0;
-
 }    
     
