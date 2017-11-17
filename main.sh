@@ -5,7 +5,7 @@
 
 
 # !!! change ...
-target=4
+target=3
 # 1: Raspberry Pi 2
 # 2: Netgear R7800
 # 3: APU2
@@ -58,6 +58,7 @@ kernel_linux_build_dir () {
 	2) # Netgear R7800
 		;;
 	3) # APU 2
+		kernel_linux_path='build_dir/target-x86_64_musl/linux-x86_64/linux-'${kernel_version}
 		;;
 	4) # Raspbery Pi 3
 		kernel_linux_path='build_dir/target-aarch64_cortex-a53_musl/linux-brcm2708_bcm2710/linux-'${kernel_version}
@@ -109,6 +110,7 @@ while getopts ":hikupsw" opt; do
 			2) # netgear r7800
 				;;
 			3) # apu2
+				cp dtc-lede-multipath/dtc_setup_lede/config_apu2 .config
 				;;
 			4) # raspberry pi 3
 				cp dtc-lede-multipath/dtc_setup_lede/config_rasp3 .config 

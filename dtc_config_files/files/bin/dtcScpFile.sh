@@ -3,9 +3,9 @@
 # Huanle Zhang
 # www.huanlezhang.com
 
-host_name="simula"
-host_ip="192.168.1.10"
-host_path="/home/simula/lede-sdk/bin/packages/x86_64/base"
+host_name="dtc"
+host_ip="192.168.3.10"
+host_path="/home/dtc/lede-x86-sdk/bin/packages/x86_64/base"
 
 if [ $# -ne 1 ]; then
 	echo "    Error! "
