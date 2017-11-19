@@ -436,17 +436,27 @@ Index: linux-4.9.54/net/socket.c
 ===================================================================
 --- linux-4.9.54.orig/net/socket.c
 +++ linux-4.9.54/net/socket.c
-@@ -108,6 +108,9 @@
+@@ -108,6 +108,10 @@
  #include <net/busy_poll.h>
  #include <linux/errqueue.h>
  
 +// added by dtc --------
 +#include "dtc/dtc_debugfs.h"
++static char dtcSendBuf[4];
 +
  #ifdef CONFIG_NET_RX_BUSY_POLL
  unsigned int sysctl_net_busy_read __read_mostly;
  unsigned int sysctl_net_busy_poll __read_mostly;
-@@ -2536,6 +2539,13 @@ static int __init sock_init(void)
+@@ -808,7 +812,7 @@ static ssize_t sock_read_iter(struct kio
+ 	*to = msg.msg_iter;
+ 	return res;
+ }
+-
++	
+ static ssize_t sock_write_iter(struct kiocb *iocb, struct iov_iter *from)
+ {
+ 	struct file *file = iocb->ki_filp;
+@@ -2536,6 +2540,13 @@ static int __init sock_init(void)
  
  	ptp_classifier_init();
  
@@ -470,12 +480,39 @@ Index: linux-4.9.54/net/ipv4/udp.c
  
 +// dtc
 +#include "../dtc/dtc_debugfs.h"
-+char dtcBuf[20];
-+int dtcNBuf = 0;
++static unsigned int dtcLocTag = DTC_TIME_UDP_SEND;
++static char dtcSendBuf[4];
 +
  struct udp_table udp_table __read_mostly;
  EXPORT_SYMBOL(udp_table);
  
+@@ -982,6 +987,18 @@ int udp_sendmsg(struct sock *sk, struct
+ 	saddr = ipc.addr;
+ 	ipc.addr = faddr = daddr;
+ 
++	// dtc
++	if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
++			dtc_debugfs_time_loc & DTC_TIME_UDP_SEND &&
++			dtc_debugfs_target_ip == daddr &&
++			dtc_debugfs_target_port == dport){ 
++		dtcSendBuf[0] = (char)(dtcLocTag >> 24);	
++		dtcSendBuf[1] = (char)(dtcLocTag >> 16); 
++		dtcSendBuf[2] = (char)(dtcLocTag >> 8);
++		dtcSendBuf[3] = (char)(dtcLocTag >> 0);
++		dtc_debugfs_log1((u8*)dtcSendBuf, 4);
++	}
++
+ 	sock_tx_timestamp(sk, ipc.sockc.tsflags, &ipc.tx_flags);
+ 
+ 	if (ipc.opt && ipc.opt->opt.srr) {
+@@ -1053,6 +1070,7 @@ back_from_confirm:
+ 				  sizeof(struct udphdr), &ipc, &rt,
+ 				  msg->msg_flags);
+ 		err = PTR_ERR(skb);
++
+ 		if (!IS_ERR_OR_NULL(skb))
+ 			err = udp_send_skb(skb, fl4);
+ 		goto out;
 Index: linux-4.9.54/net/core/dev.c
 ===================================================================
 --- linux-4.9.54.orig/net/core/dev.c
