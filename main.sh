@@ -12,10 +12,14 @@ target=3
 # 4: Raspberry Pi 3
 
 kernel_version=4.9.54
+wireless_version=4.14-rc2-1
+
+build_directory_path=
 kernel_linux_path=
+kernel_wireless_path=
 
-kernel_debugfs_patch='990-dtc_debugfs.patch'
-
+linux_debugfs_patch='990-dtc_debugfs.patch'
+wireless_debugfs_patch='990-dtc_debugfs.patch'
 
 # color output
 RED='\033[0;31m'
@@ -31,11 +35,11 @@ ERROR_COLOR=$RED
 usage () {
     cat <<EOF
 Note: remember to change target in main.sh 
-Usage: program [-h] [-i] [-k] [-s] [-w] [-p] [-u]
+Usage: program [-h] [-i] [-k] [-l] [-w] [-p] [-u]
 	-h	help information
 	-i	initialize/download LEDE
 	-k	install kernel files (linux+wireless)
-	-s	save kernel files (linux)
+	-l	save kernel files (linux)
 	-w	save kernel files (wireless) 
 	-p	install packages 
 	-u	uninstall all     
@@ -58,7 +62,9 @@ kernel_linux_build_dir () {
 	2) # Netgear R7800
 		;;
 	3) # APU 2
-		kernel_linux_path='build_dir/target-x86_64_musl/linux-x86_64/linux-'${kernel_version}
+		build_directory_path='build_dir/target-x86_64_musl/linux-x86_64'
+		kernel_linux_path=${build_directory_path}'/linux-'${kernel_version}
+		kernel_wireless_path=${build_directory_path}'/backports-'${wireless_version}
 		;;
 	4) # Raspbery Pi 3
 		kernel_linux_path='build_dir/target-aarch64_cortex-a53_musl/linux-brcm2708_bcm2710/linux-'${kernel_version}
@@ -101,6 +107,8 @@ while getopts ":hikupsw" opt; do
 		(
 			cd ..
 			cp dtc-lede-multipath/dtc_setup_lede/kernel-version.mk include/
+			rm -rf package/kernel/mac80211
+			cp -r dtc-lede-multipath/dtc_setup_lede/mac80211/ package/kernel/mac80211
 			./scripts/feeds update -a
 			./scripts/feeds install -a
 			case $target in
@@ -131,18 +139,19 @@ while getopts ":hikupsw" opt; do
         ;;
 	k)  # kernel files (linux+wireless)
 		echo -e "${HEAD_COLOR} -------- install kernel files (linux+wireless) ${NC}"
+		# install linux
 		(
 			cd ..
 			make target/linux/{clean,prepare} QUILT=1
 			cd $kernel_linux_path
 			quilt push -a
-			if [ ! -f platform/${kernel_linux_path} ]; then
-					quilt new platform/${kernel_debugfs_patch}
+			if [ ! -f patches/platform/${linux_debugfs_patch} ]; then
+					quilt new platform/${linux_debugfs_patch}
 			fi 
 		)
 		(
 			cd ..
-			cp -v ./dtc-lede-multipath/dtc_kernel/patches/linux/${kernel_debugfs_patch} ${kernel_linux_path}/patches/platform/
+			cp -v ./dtc-lede-multipath/dtc_kernel/patches/linux/${linux_debugfs_patch} ${kernel_linux_path}/patches/platform/
 		)
 		(
 			cd ..
@@ -153,12 +162,17 @@ while getopts ":hikupsw" opt; do
 			make target/linux/update
 			make target/linux/clean 
 		)
+		# install wireless
+		(
+			cd ..
+			cp -v ./dtc-lede-multipath/dtc_kernel/patches/wireless/${wireless_debugfs_patch} package/kernel/mac80211/patches/
+		)
 		echo -e "${TAIL_COLOR} -------- install kernel files (linux+wireless) done -------- ${NC}"
         exit
         ;;
-	s)	# save kernel files (linux)
+	l)	# save kernel files (linux)
 		echo -e "${HEAD_COLOR} -------- save kernel files (linux) ${NC}"
-	    cp -v ../${kernel_linux_path}/patches/platform/${kernel_debugfs_patch} ./dtc_kernel/patches/linux/
+	    cp -v ../${kernel_linux_path}/patches/platform/${linux_debugfs_patch} ./dtc_kernel/patches/linux/
 		(
 			cd ..
 			make target/linux/update
@@ -169,6 +183,7 @@ while getopts ":hikupsw" opt; do
 		;;
 	w)	# save kernel files (wireless)
 		echo -e "${HEAD_COLOR} -------- save kernel files (wireless) ${NC}"
+		cp -v ../${kernel_wireless_path}/patches/${wireless_debugfs_patch} ./dtc_kernel/patches/wireless/
 		echo -e "${TAIL_COLOR} -------- save kernel files (wireless) done -------- ${NC}"
 		exit
 		;;
@@ -183,8 +198,8 @@ while getopts ":hikupsw" opt; do
 			make target/linux/{clean,prepare} QUILT=1
 			#kernel_linux_build_dir $target 
 			cd $kernel_linux_path 
-			if [ -f patches/platform/$kernel_debugfs_patch ]; then
-					quilt delete platform/$kernel_debugfs_patch
+			if [ -f patches/platform/$linux_debugfs_patch ]; then
+				quilt delete platform/$linux_debugfs_patch
 			fi 
 		)
 		(
@@ -193,7 +208,16 @@ while getopts ":hikupsw" opt; do
 			make target/linux/clean 
 		)
 		# remove kernel files (wireless)
-		# to do ...
+		(
+			cd ..
+			if [ -f package/kernel/mac80211/patches/${wireless_debugfs_patch} ]; then 
+				rm package/kernel/mac80211/patches/${wireless_debugfs_patch}
+			fi 
+		)
+		(
+			cd ..
+			make package/kernel/mac80211/clean 
+		)
         echo -e "${TAIL_COLOR} -------- removing all done -------- ${NC}"
         exit
         ;;
