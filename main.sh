@@ -43,7 +43,8 @@ Usage: program [-h] [-i] [-k] [-l] [-w] [-p] [-u]
 	-w	save kernel files (wireless) 
 	-p	install packages 
 	-u	uninstall all     
-Example: ./main.sh -k to install kernel files
+Example: ./main.sh -k 
+			install kernel files
 EOF
 }
 
@@ -228,5 +229,4 @@ while getopts ":hikupsw" opt; do
         ;;
     esac
 done
-
 shift $(($OPTIND - 1))
