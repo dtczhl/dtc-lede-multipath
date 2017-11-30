@@ -34,6 +34,8 @@
 #define DTC_TIME_MAC_RECV	( 1 << (16+3) )
 #define DTC_TIME_ATH_SEND	( 1 << (0+4) )
 #define DTC_TIME_ATH_RECV	( 1 << (16+4) )
+#define DTC_TIME_IP_SEND	( 1 << (0+5) )
+#define DTC_TIME_IP_RECV	( 1 << (16+5) )
 
 /* length: decimals to string literals */
 #define DTC_DEC_32  10

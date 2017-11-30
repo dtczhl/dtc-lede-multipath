@@ -17,6 +17,8 @@ isMacSend=0
 isMacRecv=0
 isAthSend=0
 isAthRecv=0
+isIpSend=0
+isIpRecv=0
 
 dtcSockTimeLoc=0
 dtcMacTimeLoc=0
@@ -38,12 +40,12 @@ myAshCmd=
 
 usage (){
 cat <<EOF
-Usage: program -s [stuma] | -r [stuma] -i Ip_address -p Port_number -u -t -c [enable|disable]
+Usage: program -s [stuma] | -r [stuima] -i Ip_address -p Port_number -u -t -c [enable|disable]
 	-s (optional)	send path
 	-r (optional)	recv path
-	stuma			s: sock; t: tcp; u: udp; m: mac; a: ath10k
-	-u (optional)	UDP tracking
-	-t (optional)	TCP tracking 
+	stuima			s: sock; t: tcp; u: udp; i:ip; m: mac; a: ath10k
+	-u (optional,default)	UDP tracking
+	-t (optional)			TCP tracking 
 	-i (required for enable)	ip address to monitor
 	-p (required for enable)	port number
 	-c (required for enable)	enable or disable debugfs
@@ -78,6 +80,9 @@ while getopts ":s:r:i:p:c:ut" opt; do
 			u) # udp
 				isUdpSend=1
 				;;
+			i) # ip
+				isIpSend=1
+				;;
 			m) # mac
 				isMacSend=1
 				;;
@@ -106,6 +111,9 @@ while getopts ":s:r:i:p:c:ut" opt; do
 				;;
 			u) # udp
 				isUdpRecv=1
+				;;
+			i) # ip
+				isIpRecv=1
 				;;
 			m) # mac
 				isMacRecv=1
@@ -174,6 +182,7 @@ fi
 
 # check dtcSock
 if [[ $isSockSend -eq 1 || $isSockRecv -eq 1 ||
+	  $isIpSend -eq 1 || $isIpRecv -eq 1 ||
 	  $isTcpSend -eq 1 || $isTcpRecv -eq 1 ||
 	  $isUdpSend -eq 1 || $isUdpRecv -eq 1 ]]; then
 	if [ ! -d "$dtcSockDir" ]; then
@@ -231,23 +240,51 @@ if [ $isSockSend -eq 1 ]; then
 	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 0 ) ))
 fi
 
+if [ $isSockRecv -eq 1 ]; then
+	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 16 ) ))
+fi
+
 if [ $isTcpSend -eq 1 ]; then
 	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 1 ) ))
 fi
 
+if [ $isTcpRecv -eq 1 ]; then
+	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 17 ) ))
+fi 
+
 if [ $isUdpSend -eq 1 ]; then
 	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 2 ) ))
+fi 
+
+if [ $isUdpRecv -eq 1 ]; then
+	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 18 ) ))
+fi 
+
+if [ $isIpSend -eq 1 ]; then
+	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 5 ) ))
+fi 
+
+if [ $isIpRecv -eq 1 ]; then
+	dtcSockTimeLoc=$(( $dtcSockTimeLoc + ( 1 << 21 ) ))
 fi 
 
 if [ $isMacSend -eq 1 ]; then
 	dtcMacTimeLoc=$(( $dtcMacTimeLoc + ( 1 << 3 ) ))
 fi 
 
+if [ $isMacRecv -eq 1 ]; then
+	dtcMacTimeLoc=$(( $dtcMacTimeLoc + ( 1 << 19 ) ))
+fi 
+
 if [ $isAthSend -eq 1 ]; then
 	dtcAthTimeLoc=$(( $dtcAthTimeLoc + ( 1 << 4 ) ))
 fi
 
+if [ $isAthRecv -eq 1 ]; then
+	dtcAthTimeLoc=$(( $dtcAthTimeLoc + ( 1 << 20) ))
+
 if [[ $isSockSend -eq 1 || $isSockRecv -eq 1 ||
+		$isIpSend -eq 1 || $isIpRecv -eq 1 ||
 		$isTcpSend -eq 1 || $isTcpRecv -eq 1 ||
 		$isUdpSend -eq 1 || $isUdpRecv -eq 1 ]]; then	
 	echo "${dtcIp} ${dtcPort} > ${dtcSockDir}/target"

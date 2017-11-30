@@ -4,7 +4,7 @@
 # www.huanlezhang.com
 
 recordId=1
-savePath=/root
+savePath=/dtc
 
 serverIp=192.168.21.191
 serverPort=50000

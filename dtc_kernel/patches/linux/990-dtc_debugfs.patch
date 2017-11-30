@@ -352,7 +352,7 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.h
 ===================================================================
 --- /dev/null
 +++ linux-4.9.54/net/dtc/dtc_debugfs.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,81 @@
 +#ifndef _DTC_DEBUGFS_H_
 +#define _DTC_DEBUGFS_H_
 +
@@ -389,6 +389,8 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.h
 +#define DTC_TIME_MAC_RECV	( 1 << (16+3) )
 +#define DTC_TIME_ATH_SEND	( 1 << (0+4) )
 +#define DTC_TIME_ATH_RECV	( 1 << (16+4) )
++#define DTC_TIME_IP_SEND	( 1 << (0+5) )
++#define DTC_TIME_IP_RECV	( 1 << (16+5) )
 +
 +/* length: decimals to string literals */
 +#define DTC_DEC_32  10
@@ -474,38 +476,17 @@ Index: linux-4.9.54/net/ipv4/udp.c
 ===================================================================
 --- linux-4.9.54.orig/net/ipv4/udp.c
 +++ linux-4.9.54/net/ipv4/udp.c
-@@ -116,6 +116,11 @@
+@@ -116,6 +116,9 @@
  #include <net/sock_reuseport.h>
  #include <net/addrconf.h>
  
 +// dtc
 +#include "../dtc/dtc_debugfs.h"
-+static unsigned int dtcLocTag = DTC_TIME_UDP_SEND;
-+static char dtcSendBuf[4];
 +
  struct udp_table udp_table __read_mostly;
  EXPORT_SYMBOL(udp_table);
  
-@@ -982,6 +987,18 @@ int udp_sendmsg(struct sock *sk, struct
- 	saddr = ipc.addr;
- 	ipc.addr = faddr = daddr;
- 
-+	// dtc
-+	if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
-+			dtc_debugfs_time_loc & DTC_TIME_UDP_SEND &&
-+			dtc_debugfs_target_ip == daddr &&
-+			dtc_debugfs_target_port == dport){ 
-+		dtcSendBuf[0] = (char)(dtcLocTag >> 24);	
-+		dtcSendBuf[1] = (char)(dtcLocTag >> 16); 
-+		dtcSendBuf[2] = (char)(dtcLocTag >> 8);
-+		dtcSendBuf[3] = (char)(dtcLocTag >> 0);
-+		dtc_debugfs_log1((u8*)dtcSendBuf, 4);
-+	}
-+
- 	sock_tx_timestamp(sk, ipc.sockc.tsflags, &ipc.tx_flags);
- 
- 	if (ipc.opt && ipc.opt->opt.srr) {
-@@ -1053,6 +1070,7 @@ back_from_confirm:
+@@ -1053,6 +1056,7 @@ back_from_confirm:
  				  sizeof(struct udphdr), &ipc, &rt,
  				  msg->msg_flags);
  		err = PTR_ERR(skb);
@@ -513,6 +494,20 @@ Index: linux-4.9.54/net/ipv4/udp.c
  		if (!IS_ERR_OR_NULL(skb))
  			err = udp_send_skb(skb, fl4);
  		goto out;
+@@ -1793,6 +1797,13 @@ int __udp4_lib_rcv(struct sk_buff *skb,
+ 			skb_checksum_try_convert(skb, IPPROTO_UDP, uh->check,
+ 						 inet_compute_pseudo);
+ 
++		// dtc
++		if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
++				dtc_debugfs_time_loc & DTC_TIME_UDP_RECV &&
++				dtc_debugfs_target_ip == saddr){
++			dtc_debugfs_log2((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
++		}
++
+ 		ret = udp_queue_rcv_skb(sk, skb);
+ 
+ 		/* a return value > 0 means to resubmit the input, but
 Index: linux-4.9.54/net/core/dev.c
 ===================================================================
 --- linux-4.9.54.orig/net/core/dev.c
@@ -556,12 +551,13 @@ Index: linux-4.9.54/net/ipv4/ip_output.c
  static int
  ip_fragment(struct net *net, struct sock *sk, struct sk_buff *skb,
  	    unsigned int mtu,
-@@ -118,6 +121,13 @@ int ip_local_out(struct net *net, struct
+@@ -118,6 +121,14 @@ int ip_local_out(struct net *net, struct
  {
  	int err;
  
 +	// dtc
-+	if (dtc_debugfs_enable == DTC_ENABLE_UDP &&
++	if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
++			dtc_debugfs_time_loc & DTC_IP_SEND &&
 +			dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
 +			dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(skb))->dest){
 +		dtc_debugfs_log1((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
@@ -570,7 +566,7 @@ Index: linux-4.9.54/net/ipv4/ip_output.c
  	err = __ip_local_out(net, sk, skb);
  	if (likely(err == 1))
  		err = dst_output(net, sk, skb);
-@@ -474,7 +484,6 @@ packet_routed:
+@@ -474,7 +485,6 @@ packet_routed:
  	/* TODO : should we use skb->sk here instead of sk ? */
  	skb->priority = sk->sk_priority;
  	skb->mark = sk->sk_mark;

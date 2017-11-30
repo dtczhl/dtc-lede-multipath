@@ -338,7 +338,7 @@ Index: backports-4.14-rc2-1/net/dtc/dtc_debugfs.h
 ===================================================================
 --- /dev/null
 +++ backports-4.14-rc2-1/net/dtc/dtc_debugfs.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,81 @@
 +#ifndef _DTC_DEBUGFS_H_
 +#define _DTC_DEBUGFS_H_
 +
@@ -375,6 +375,8 @@ Index: backports-4.14-rc2-1/net/dtc/dtc_debugfs.h
 +#define DTC_TIME_MAC_RECV	( 1 << (16+3) )
 +#define DTC_TIME_ATH_SEND	( 1 << (0+4) )
 +#define DTC_TIME_ATH_RECV	( 1 << (16+4) )
++#define DTC_TIME_IP_SEND	( 1 << (0+5) )
++#define DTC_TIME_IP_RECV	( 1 << (16+5) )
 +
 +/* length: decimals to string literals */
 +#define DTC_DEC_32  10
@@ -855,7 +857,7 @@ Index: backports-4.14-rc2-1/drivers/net/dtc/dtc_debugfs.h
 ===================================================================
 --- /dev/null
 +++ backports-4.14-rc2-1/drivers/net/dtc/dtc_debugfs.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,81 @@
 +#ifndef _DTC_DEBUGFS_H_
 +#define _DTC_DEBUGFS_H_
 +
@@ -892,6 +894,8 @@ Index: backports-4.14-rc2-1/drivers/net/dtc/dtc_debugfs.h
 +#define DTC_TIME_MAC_RECV	( 1 << (16+3) )
 +#define DTC_TIME_ATH_SEND	( 1 << (0+4) )
 +#define DTC_TIME_ATH_RECV	( 1 << (16+4) )
++#define DTC_TIME_IP_SEND	( 1 << (0+5) )
++#define DTC_TIME_IP_RECV	( 1 << (16+5) )
 +
 +/* length: decimals to string literals */
 +#define DTC_DEC_32  10

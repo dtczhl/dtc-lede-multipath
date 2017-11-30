@@ -2,6 +2,8 @@
 
 myInputFile=
 
+CURRENT_PATH="$( cd "$(dirname "$0")"; pwd -P )"
+
 usage (){
 cat <<EOF
 Usage: program -f fileFromDebugfs
@@ -32,18 +34,26 @@ if [ -z "$myInputFile" ]; then
 	exit
 fi
 
-if [ ! -d "raw2text" ]; then
+if [ ! -d "${CURRENT_PATH}/raw2text" ]; then
 	echo "**** raw2text directory does not exist!!!"
 	exit
 fi
 
 echo "Compile raw2text"
 (
-cd ./raw2text && make
+cd ${CURRENT_PATH}/raw2text && make
 )
 
-if [ -x "./raw2text/raw2text" ]; then
-	./raw2text/raw2text -i "${myInputFile}" -o "${myInputFile}.out"
+if [ -x "${CURRENT_PATH}/raw2text/raw2text" ]; then
+	${CURRENT_PATH}/raw2text/raw2text -i "${myInputFile}" -o "${myInputFile}.out"
+fi
+
+if [[ $myInputFile =~ .*sock.* ]]; then
+	# fileName sock, 
+	awk '
+		NR%2==1{sockLayer=$1" "$2;} NR%2==0{print sockLayer, $0;}
+	' ${myInputFile}.out > temp
+	mv temp ${myInputFile}.out
 fi
 
 echo done!!

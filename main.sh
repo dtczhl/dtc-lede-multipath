@@ -90,7 +90,7 @@ fi
 kernel_linux_build_dir $target
 
 
-while getopts ":hikupsw" opt; do
+while getopts ":hikuplw" opt; do
     case $opt in
 
     h)  # help information
@@ -173,6 +173,14 @@ while getopts ":hikupsw" opt; do
         ;;
 	l)	# save kernel files (linux)
 		echo -e "${HEAD_COLOR} -------- save kernel files (linux) ${NC}"
+		(
+			cd ..
+			make target/linux/{clean,prepare} QUILT=1
+		)
+		(
+			cd ../${kernel_linux_path}
+			quilt push -a
+		)
 	    cp -v ../${kernel_linux_path}/patches/platform/${linux_debugfs_patch} ./dtc_kernel/patches/linux/
 		(
 			cd ..
