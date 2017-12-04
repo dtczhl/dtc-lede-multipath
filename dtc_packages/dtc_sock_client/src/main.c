@@ -13,17 +13,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <sys/types.h>
 
 #define BUF_LEN 1000
-char buf[BUF_LEN];
+static char buf[BUF_LEN];
+static char recvBuf[BUF_LEN];
 
-struct timespec delay;
+static struct timespec delay;
 
-struct sockaddr_in si_me, si_you;
+static struct sockaddr_in si_me, si_you;
 
-unsigned int seq = 0;
-
-unsigned int decimator = 0;
+static unsigned int decimator = 0;
 
 void die(const char *s){
     perror(s);
@@ -93,26 +93,22 @@ void argumentProcess(int argc, char **argv){
 	printf("decimation: %u\n", decimator);
 
 }
+    
+static int s, slen;
+static unsigned int seq = 0;
+static unsigned int packet_send = 0;
 
-int main(int argc, char **argv){
+void childProcess(void){
+	
+	printf("in child process, waiting to consume packets\n");	
+	while(recvfrom(s, recvBuf, BUF_LEN, 0, (struct sockaddr *) &si_you, &slen) != -1){
+		; // just free up buffer
+	}
+}
 
-    if (argc < 2){
-        printf("**** Error \n");
-        printFormat();
-        exit(-1);
-    }
-
-	argumentProcess(argc, argv);
-
-    int s, slen = sizeof(si_me);
-    unsigned int seq = 0;
-    unsigned int packet_send = 0;
-
-    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
-        die("socket()");
-    }
-
-    while (1){
+void parentProcess(void){
+    
+	while (1){
 
         seq++;
 
@@ -133,6 +129,33 @@ int main(int argc, char **argv){
 
         nanosleep(&delay, NULL);
     }
+}
+
+int main(int argc, char **argv){
+
+    if (argc < 2){
+        printf("**** Error \n");
+        printFormat();
+        exit(-1);
+    }
+
+	argumentProcess(argc, argv);
+
+	slen = sizeof(si_me);
+
+
+
+    if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
+        die("socket()");
+    }
+
+// two processes: one for sending, the other for receiving
+	pid_t pid = fork();
+	if (pid == 0){
+		childProcess();
+	} else {
+		parentProcess();	
+	}
 
     close(s);
     return 0;

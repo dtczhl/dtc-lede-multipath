@@ -31,13 +31,13 @@ static u64 info_buf_pos = 0;				// otherwise, use log file
 
 /* log1 in binary format */
 static struct dentry *file_log1;
-static const u64 log1_buf_size = 40 * 1024 * 1024; // change this to be big enough
+static const u64 log1_buf_size = 100 * 1024 * 1024; // change this to be big enough
 static u64 log1_buf_pos = 0;
 static struct debugfs_blob_wrapper log1_blob;
 
 /* log2 in binary format */
 static struct dentry *file_log2;
-static const u64 log2_buf_size = 40 * 1024 * 1024; // change this to be big enough
+static const u64 log2_buf_size = 100 * 1024 * 1024; // change this to be big enough
 static u64 log2_buf_pos = 0;
 static struct debugfs_blob_wrapper log2_blob;
 

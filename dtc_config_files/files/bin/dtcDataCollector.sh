@@ -6,8 +6,8 @@
 recordId=1
 savePath=/dtc
 
-serverIp=192.168.21.191
-serverPort=50000
+targetIp=192.168.21.191
+targetPort=50000
 
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
@@ -17,11 +17,12 @@ dtcAthDir=${debugfsPath}/dtcAth
 
 usage(){
 cat <<EOF
-Usage: program -[r|s]
-	-r	run relevant tools
+Usage: program -[r|l|s]
+	-r	run sender tools
+	-l	listen only 
 	-s	stop tools, and save data to files
 Example: program -r
-			trigger program
+			trigger sender program
 		 program -s
 			stop program 
 EOF
@@ -34,15 +35,25 @@ if [ $# -ne 1 ]; then
 	exit
 fi
 
-while getopts ":rs" opt; do
+while getopts ":rls" opt; do
 	case $opt in
 	r) # run
-		dtcDebugfsController.sh -s suma -i $serverIp -p $serverPort -c enable
-		dtc_sock_client -i $serverIp -p $serverPort -n 100000 > /dev/null &
+		myRunCmd="dtcDebugfsController.sh -s uima -r u -i $targetIp -p $targetPort -c enable"
+		echo $myRunCmd > $savePath/ReadMe$recordId 
+		eval $myRunCmd
+		date >> $savePath/ReadMe$recordId 
+		dtc_sock_client -i $targetIp -p $targetPort -n 100000 > /dev/null &
 		echo "Running..."
+		;;
+	l) # listen only
+		myListenCmd="dtcDebugfsController.sh -r u -i $targetIp -p $targetPort -c enable"
+		echo $myListenCmd > $savePath/ReadMe$recordId 
+		eval $myListenCmd 
+		echo "Listening..."
 		;;
 	s) # stop and save data
 		dtcDebugfsController.sh -c disable
+		date >> $savePath/ReadMe$recordId 
 		ps | grep dtc_sock_client | grep -v grep | awk '{print $1}' | xargs -r kill -9
 		# modify to your needs
 		cat ${dtcSockDir}/log1 > ${savePath}/sockLog1_${recordId}

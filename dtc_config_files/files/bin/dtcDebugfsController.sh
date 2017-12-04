@@ -40,7 +40,7 @@ myAshCmd=
 
 usage (){
 cat <<EOF
-Usage: program -s [stuma] | -r [stuima] -i Ip_address -p Port_number -u -t -c [enable|disable]
+Usage: program -s [stuima] | -r [stuima] -i Ip_address -p Port_number -u -t -c [enable|disable]
 	-s (optional)	send path
 	-r (optional)	recv path
 	stuima			s: sock; t: tcp; u: udp; i:ip; m: mac; a: ath10k
@@ -282,6 +282,7 @@ fi
 
 if [ $isAthRecv -eq 1 ]; then
 	dtcAthTimeLoc=$(( $dtcAthTimeLoc + ( 1 << 20) ))
+fi 
 
 if [[ $isSockSend -eq 1 || $isSockRecv -eq 1 ||
 		$isIpSend -eq 1 || $isIpRecv -eq 1 ||
