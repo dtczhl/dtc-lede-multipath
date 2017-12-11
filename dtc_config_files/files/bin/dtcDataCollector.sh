@@ -8,6 +8,7 @@ savePath=/dtc
 
 targetIp=192.168.21.191
 targetPort=50000
+selfPort=50000
 
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
@@ -42,7 +43,11 @@ while getopts ":rls" opt; do
 		echo $myRunCmd > $savePath/ReadMe$recordId 
 		eval $myRunCmd
 		date >> $savePath/ReadMe$recordId 
-		dtc_sock_client -i $targetIp -p $targetPort -n 100000 > /dev/null &
+		if [ ! $selfPort -eq 0 ]; then
+			dtc_sock_client -i $targetIp -p $targetPort -c $selfPort -n 100000 > /dev/null &
+		else
+			dtc_sock_client -i $targetIp -p $targetPort -n 100000 > /dev/null &
+		fi 
 		echo "Running..."
 		;;
 	l) # listen only

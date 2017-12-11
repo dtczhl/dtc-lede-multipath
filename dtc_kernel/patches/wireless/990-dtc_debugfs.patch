@@ -43,13 +43,13 @@ Index: backports-4.14-rc2-1/net/dtc/dtc_debugfs.c
 +
 +/* log1 in binary format */
 +static struct dentry *file_log1;
-+static const u64 log1_buf_size = 40 * 1024 * 1024; // change this to be big enough
++static const u64 log1_buf_size = 100 * 1024 * 1024; // change this to be big enough
 +static u64 log1_buf_pos = 0;
 +static struct debugfs_blob_wrapper log1_blob;
 +
 +/* log2 in binary format */
 +static struct dentry *file_log2;
-+static const u64 log2_buf_size = 40 * 1024 * 1024; // change this to be big enough
++static const u64 log2_buf_size = 100 * 1024 * 1024; // change this to be big enough
 +static u64 log2_buf_pos = 0;
 +static struct debugfs_blob_wrapper log2_blob;
 +
@@ -489,19 +489,17 @@ Index: backports-4.14-rc2-1/net/mac80211/tx.c
 ===================================================================
 --- backports-4.14-rc2-1.orig/net/mac80211/tx.c
 +++ backports-4.14-rc2-1/net/mac80211/tx.c
-@@ -39,6 +39,11 @@
+@@ -39,6 +39,9 @@
  #include "wme.h"
  #include "rate.h"
  
 +//dtc
 +#include "../dtc/dtc_debugfs.h"
-+static unsigned int dtcLogTag = DTC_TIME_MAC_SEND;
-+static char dtcSendBuf[4];
 +
  /* misc utils */
  
  static inline void ieee80211_tx_stats(struct net_device *dev, u32 len)
-@@ -3726,6 +3731,15 @@ out:
+@@ -3726,6 +3729,15 @@ out:
  netdev_tx_t ieee80211_subif_start_xmit(struct sk_buff *skb,
  				       struct net_device *dev)
  {
@@ -562,13 +560,13 @@ Index: backports-4.14-rc2-1/drivers/net/dtc/dtc_debugfs.c
 +
 +/* log1 in binary format */
 +static struct dentry *file_log1;
-+static const u64 log1_buf_size = 40 * 1024 * 1024; // change this to be big enough
++static const u64 log1_buf_size = 100 * 1024 * 1024; // change this to be big enough
 +static u64 log1_buf_pos = 0;
 +static struct debugfs_blob_wrapper log1_blob;
 +
 +/* log2 in binary format */
 +static struct dentry *file_log2;
-+static const u64 log2_buf_size = 40 * 1024 * 1024; // change this to be big enough
++static const u64 log2_buf_size = 100 * 1024 * 1024; // change this to be big enough
 +static u64 log2_buf_pos = 0;
 +static struct debugfs_blob_wrapper log2_blob;
 +
@@ -1019,8 +1017,13 @@ Index: backports-4.14-rc2-1/drivers/net/wireless/ath/ath10k/mac.c
  /*********/
  /* Rates */
  /*********/
-@@ -3585,6 +3588,15 @@ static int ath10k_mac_tx_submit(struct a
+@@ -3583,8 +3586,21 @@ static int ath10k_mac_tx_submit(struct a
+ 	struct ath10k_htt *htt = &ar->htt;
+ 	int ret = -EINVAL;
  
++	// dtc - ECS 235A
++	static unsigned int mySeq = 0;
++
  	switch (txpath) {
  	case ATH10K_MAC_TX_HTT:
 +
@@ -1029,13 +1032,14 @@ Index: backports-4.14-rc2-1/drivers/net/wireless/ath/ath10k/mac.c
 +				dtc_debugfs_time_loc & DTC_TIME_ATH_SEND &&
 +				dtc_debugfs_target_ip == ((struct iphdr*)skb_network_header(skb))->daddr &&
 +				dtc_debugfs_target_port == ((struct udphdr*)skb_transport_header(skb))->dest){
++			
 +			dtc_debugfs_log1((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
 +		}
 +
  		ret = ath10k_htt_tx(htt, txmode, skb);
  		break;
  	case ATH10K_MAC_TX_HTT_MGMT:
-@@ -4193,6 +4205,7 @@ static void ath10k_mac_op_tx(struct ieee
+@@ -4193,6 +4209,7 @@ static void ath10k_mac_op_tx(struct ieee
  	bool is_presp;
  	int ret;
  
@@ -1043,7 +1047,7 @@ Index: backports-4.14-rc2-1/drivers/net/wireless/ath/ath10k/mac.c
  	ath10k_mac_tx_h_fill_cb(ar, vif, txq, skb);
  
  	txmode = ath10k_mac_tx_h_get_txmode(ar, vif, sta, skb);
-@@ -4202,6 +4215,7 @@ static void ath10k_mac_op_tx(struct ieee
+@@ -4202,6 +4219,7 @@ static void ath10k_mac_op_tx(struct ieee
  	is_mgmt = (txpath == ATH10K_MAC_TX_HTT_MGMT);
  
  	if (is_htt) {

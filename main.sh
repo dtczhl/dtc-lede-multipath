@@ -14,6 +14,8 @@ target=3
 kernel_version=4.9.54
 wireless_version=4.14-rc2-1
 
+CURRENT_PATH="$( cd "$(dirname "$0")"; pwd -P )"
+
 build_directory_path=
 kernel_linux_path=
 kernel_wireless_path=
@@ -80,6 +82,14 @@ error_info () {
     echo "  Error! Show help information with -h option"
 }
 
+check_caller_loc(){
+	if [ ! -d dtc-lede-multipath ]; then
+		echo -e "${ERROR_COLOR} ****Error ${NC}"
+		echo -e "${ERROR_COLOR} Cannot find dtc-lede-multipath folder under current caller location ${NC}"
+		exit
+	fi
+}
+
 # starts here ----------------------------------
 if [ $# -lt 1 ]; then
     error_info 
@@ -89,7 +99,6 @@ fi
 # get paths
 kernel_linux_build_dir $target
 
-
 while getopts ":hikuplw" opt; do
     case $opt in
 
@@ -98,7 +107,7 @@ while getopts ":hikuplw" opt; do
         exit
         ;;
 	i)	# initialize LEDE (download, config)
-		if [ -d ../../dtcLede ] || [ -d ../dtcLede]; then
+		if [ -d ../../dtcLede ] || [ -d ../dtcLede ]; then
 			echo -e "${ERROR_COLOR} -------- seems you have already donwloaded LEDE!!! ${NC}"
 			exit
 		fi 
@@ -131,102 +140,76 @@ while getopts ":hikuplw" opt; do
 		)
 		echo -e "${TAIL_COLOR} -------- download and config LEDE done -------- ${NC}"
 		exit;;
-    p)  # packages
+    p)  # packages 
+		check_caller_loc 
         echo -e "${HEAD_COLOR} -------- install customized packages ${NC}"
-        cp -v -r ./dtc_config_files ../package/feeds/
-        cp -v -r ./dtc_packages/* ../package/feeds/
+        cp -v -r dtc-lede-multipath/dtc_config_files package/feeds/
+        cp -v -r dtc-lede-multipath/dtc_packages/* package/feeds/
         echo -e "${TAIL_COLOR} -------- install customized packages done -------- ${NC}"
         exit
         ;;
 	k)  # kernel files (linux+wireless)
+		check_caller_loc 
 		echo -e "${HEAD_COLOR} -------- install kernel files (linux+wireless) ${NC}"
 		# install linux
+		make target/linux/{clean,prepare} QUILT=1
 		(
-			cd ..
-			make target/linux/{clean,prepare} QUILT=1
 			cd $kernel_linux_path
 			quilt push -a
 			if [ ! -f patches/platform/${linux_debugfs_patch} ]; then
 					quilt new platform/${linux_debugfs_patch}
-			fi 
+			fi
 		)
-		(
-			cd ..
-			cp -v ./dtc-lede-multipath/dtc_kernel/patches/linux/${linux_debugfs_patch} ${kernel_linux_path}/patches/platform/
-		)
-		(
-			cd ..
-			cd $kernel_linux_path 
-		)
-		(
-			cd ..
-			make target/linux/update
-			make target/linux/clean 
-		)
+		cp -v dtc-lede-multipath/dtc_kernel/patches/linux/${linux_debugfs_patch} ${kernel_linux_path}/patches/platform/
+		make target/linux/update
 		# install wireless
-		(
-			cd ..
-			cp -v ./dtc-lede-multipath/dtc_kernel/patches/wireless/${wireless_debugfs_patch} package/kernel/mac80211/patches/
-		)
+		cp -v dtc-lede-multipath/dtc_kernel/patches/wireless/${wireless_debugfs_patch} package/kernel/mac80211/patches/
 		echo -e "${TAIL_COLOR} -------- install kernel files (linux+wireless) done -------- ${NC}"
         exit
         ;;
 	l)	# save kernel files (linux)
+		check_caller_loc 
 		echo -e "${HEAD_COLOR} -------- save kernel files (linux) ${NC}"
-		(
-			cd ..
+		if [ ! -f ${kernel_linux_path}/patches/platform/${linux_debugfs_patch} ]; then
 			make target/linux/{clean,prepare} QUILT=1
-		)
-		(
-			cd ../${kernel_linux_path}
-			quilt push -a
-		)
-	    cp -v ../${kernel_linux_path}/patches/platform/${linux_debugfs_patch} ./dtc_kernel/patches/linux/
-		(
-			cd ..
-			make target/linux/update
-			make target/linux/clean 
-		)
+		fi 
+		cp -v ${kernel_linux_path}/patches/platform/${linux_debugfs_patch} dtc-lede-multipath/dtc_kernel/patches/linux/
+		make target/linux/update
 		echo -e "${TAIL_COLOR} -------- save kernel files (linux) done -------- ${NC}"
 		exit	
 		;;
 	w)	# save kernel files (wireless)
+		check_caller_loc 
 		echo -e "${HEAD_COLOR} -------- save kernel files (wireless) ${NC}"
-		cp -v ../${kernel_wireless_path}/patches/${wireless_debugfs_patch} ./dtc_kernel/patches/wireless/
+		if [ -f ${kernel_wireless_path}/patches/${wireless_debugfs_patch} ]; then 
+			cp -v ${kernel_wireless_path}/patches/${wireless_debugfs_patch} package/kernel/mac80211/patches/
+		fi 
+		cp -v package/kernel/mac80211/patches/${wireless_debugfs_patch} dtc-lede-multipath/dtc_kernel/patches/wireless/
 		echo -e "${TAIL_COLOR} -------- save kernel files (wireless) done -------- ${NC}"
 		exit
 		;;
     u)  # remove all, recover to original
+		check_caller_loc 
 		echo -e "${HEAD_COLOR} -------- removing all ${NC}"
 		# remove packages
-        rm -i -v -rf ../package/feeds/dtc_* 
-		rm -i -vf ../dl/dtc_*
+        rm -i -v -rf package/feeds/dtc_* 
+		rm -i -vf dl/dtc_*
 		# remove kernel files (linux)
+		make target/linux/{clean,prepare} QUILT=1
+		#kernel_linux_build_dir $target 
 		(
-			cd ..
-			make target/linux/{clean,prepare} QUILT=1
-			#kernel_linux_build_dir $target 
 			cd $kernel_linux_path 
 			if [ -f patches/platform/$linux_debugfs_patch ]; then
 				quilt delete platform/$linux_debugfs_patch
 			fi 
 		)
-		(
-			cd ..
-			make target/linux/update
-			make target/linux/clean 
-		)
+		make target/linux/update
+		make target/linux/clean 
 		# remove kernel files (wireless)
-		(
-			cd ..
-			if [ -f package/kernel/mac80211/patches/${wireless_debugfs_patch} ]; then 
-				rm package/kernel/mac80211/patches/${wireless_debugfs_patch}
-			fi 
-		)
-		(
-			cd ..
-			make package/kernel/mac80211/clean 
-		)
+		if [ -f package/kernel/mac80211/patches/${wireless_debugfs_patch} ]; then 
+			rm package/kernel/mac80211/patches/${wireless_debugfs_patch}
+		fi 
+		make package/kernel/mac80211/clean 
         echo -e "${TAIL_COLOR} -------- removing all done -------- ${NC}"
         exit
         ;;

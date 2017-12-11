@@ -15,7 +15,7 @@
 #include <time.h>
 #include <sys/types.h>
 
-#define BUF_LEN 1000
+#define BUF_LEN 2000
 static char buf[BUF_LEN];
 static char recvBuf[BUF_LEN];
 
@@ -31,9 +31,10 @@ void die(const char *s){
 }
 
 void printFormat(void){
-	printf("Format: program -i IP_address -p Port_number -n Interval(us) -d Decimation_left_shift \n");
+	printf("Format: program -i IP_address -p Port_number -c self_port_number -n Interval(us) -d Decimation_left_shift \n");
 	printf("	-i (required)	ip address\n");
 	printf("	-p (required)	port number\n");
+	printf("	-c (optional)	self port number\n");
 	printf("	-n (optional)	packet interval in us, default: 0\n");
 	printf("	-d (optional)	decimation left shift of 1, default: 31\n");
 }
@@ -43,7 +44,10 @@ void argumentProcess(int argc, char **argv){
 	delay.tv_sec = 0;
     delay.tv_nsec = 0;
 	memset((char *) &si_you, 0, sizeof(si_you));
+	memset((char *) &si_me, 0, sizeof(si_me));
     si_you.sin_family = AF_INET;
+	si_me.sin_family = AF_INET;
+	si_me.sin_addr.s_addr = htonl(INADDR_ANY);
  
 	for (int i = 1; i < argc; i++){
 		if (strcmp(argv[i], "-i") == 0){ // ip address
@@ -62,6 +66,14 @@ void argumentProcess(int argc, char **argv){
 			} else {
 				die("-p option processing error");
 			}
+		} else if (strcmp(argv[i], "-c") == 0){ // self port number
+			if (i < argc-1){
+				i++;
+				si_me.sin_port = htons((unsigned short)(atoi(argv[i])));
+			} else {
+				die("-c option processing error");
+			}
+		
 		} else if (strcmp(argv[i], "-n") == 0){ // packet interval
 			if (i < argc-1){
 				i++;
@@ -148,6 +160,12 @@ int main(int argc, char **argv){
     if ((s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1){
         die("socket()");
     }
+
+	if (si_me.sin_port != 0){
+		if (bind (s, (struct sockaddr *) &si_me, sizeof(si_me)) < 0){
+			die ("cannot bind self port number");
+		}
+	}
 
 // two processes: one for sending, the other for receiving
 	pid_t pid = fork();

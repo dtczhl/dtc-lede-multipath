@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define BUF_LEN 1000
+#define BUF_LEN 5000
 char buf[BUF_LEN];
 
 struct sockaddr_in si_me, si_you;

@@ -57,13 +57,13 @@ Index: linux-4.9.54/net/dtc/dtc_debugfs.c
 +
 +/* log1 in binary format */
 +static struct dentry *file_log1;
-+static const u64 log1_buf_size = 40 * 1024 * 1024; // change this to be big enough
++static const u64 log1_buf_size = 100 * 1024 * 1024; // change this to be big enough
 +static u64 log1_buf_pos = 0;
 +static struct debugfs_blob_wrapper log1_blob;
 +
 +/* log2 in binary format */
 +static struct dentry *file_log2;
-+static const u64 log2_buf_size = 40 * 1024 * 1024; // change this to be big enough
++static const u64 log2_buf_size = 100 * 1024 * 1024; // change this to be big enough
 +static u64 log2_buf_pos = 0;
 +static struct debugfs_blob_wrapper log2_blob;
 +
@@ -438,18 +438,17 @@ Index: linux-4.9.54/net/socket.c
 ===================================================================
 --- linux-4.9.54.orig/net/socket.c
 +++ linux-4.9.54/net/socket.c
-@@ -108,6 +108,10 @@
+@@ -108,6 +108,9 @@
  #include <net/busy_poll.h>
  #include <linux/errqueue.h>
  
 +// added by dtc --------
 +#include "dtc/dtc_debugfs.h"
-+static char dtcSendBuf[4];
 +
  #ifdef CONFIG_NET_RX_BUSY_POLL
  unsigned int sysctl_net_busy_read __read_mostly;
  unsigned int sysctl_net_busy_poll __read_mostly;
-@@ -808,7 +812,7 @@ static ssize_t sock_read_iter(struct kio
+@@ -808,7 +811,7 @@ static ssize_t sock_read_iter(struct kio
  	*to = msg.msg_iter;
  	return res;
  }
@@ -458,7 +457,7 @@ Index: linux-4.9.54/net/socket.c
  static ssize_t sock_write_iter(struct kiocb *iocb, struct iov_iter *from)
  {
  	struct file *file = iocb->ki_filp;
-@@ -2536,6 +2540,13 @@ static int __init sock_init(void)
+@@ -2536,6 +2539,13 @@ static int __init sock_init(void)
  
  	ptp_classifier_init();
  
@@ -486,7 +485,22 @@ Index: linux-4.9.54/net/ipv4/udp.c
  struct udp_table udp_table __read_mostly;
  EXPORT_SYMBOL(udp_table);
  
-@@ -1053,6 +1056,7 @@ back_from_confirm:
+@@ -982,6 +985,14 @@ int udp_sendmsg(struct sock *sk, struct
+ 	saddr = ipc.addr;
+ 	ipc.addr = faddr = daddr;
+ 
++	//dtc
++	if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
++			dtc_debugfs_time_loc & DTC_TIME_UDP_SEND &&
++			dtc_debugfs_target_ip == daddr &&
++			dtc_debugfs_target_port == dport){
++		dtc_debugfs_log1(NULL, 0);
++	}
++
+ 	sock_tx_timestamp(sk, ipc.sockc.tsflags, &ipc.tx_flags);
+ 
+ 	if (ipc.opt && ipc.opt->opt.srr) {
+@@ -1053,6 +1064,7 @@ back_from_confirm:
  				  sizeof(struct udphdr), &ipc, &rt,
  				  msg->msg_flags);
  		err = PTR_ERR(skb);
@@ -494,14 +508,15 @@ Index: linux-4.9.54/net/ipv4/udp.c
  		if (!IS_ERR_OR_NULL(skb))
  			err = udp_send_skb(skb, fl4);
  		goto out;
-@@ -1793,6 +1797,13 @@ int __udp4_lib_rcv(struct sk_buff *skb,
+@@ -1793,6 +1805,14 @@ int __udp4_lib_rcv(struct sk_buff *skb,
  			skb_checksum_try_convert(skb, IPPROTO_UDP, uh->check,
  						 inet_compute_pseudo);
  
 +		// dtc
 +		if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
 +				dtc_debugfs_time_loc & DTC_TIME_UDP_RECV &&
-+				dtc_debugfs_target_ip == saddr){
++				dtc_debugfs_target_ip == saddr &&
++				(dtc_debugfs_target_port == 0 || dtc_debugfs_target_port == uh->source)){
 +			dtc_debugfs_log2((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
 +		}
 +
@@ -522,21 +537,6 @@ Index: linux-4.9.54/net/core/dev.c
  /* Instead of increasing this, you should create a hash table. */
  #define MAX_GRO_SKBS 8
  
-@@ -2942,6 +2945,14 @@ static int xmit_one(struct sk_buff *skb,
- 	if (!list_empty(&ptype_all) || !list_empty(&dev->ptype_all))
- 		dev_queue_xmit_nit(skb, dev);
- 
-+	// dtc
-+	/*
-+	if (dtc_debugfs_enable == DTC_ENABLE_UDP &&
-+			dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
-+			dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(skb))->dest){
-+		dtc_debugfs_log1((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
-+	}*/
-+
- #ifdef CONFIG_ETHERNET_PACKET_MANGLE
- 	if (!dev->eth_mangle_tx ||
- 	    (skb = dev->eth_mangle_tx(dev, skb)) != NULL)
 Index: linux-4.9.54/net/ipv4/ip_output.c
 ===================================================================
 --- linux-4.9.54.orig/net/ipv4/ip_output.c
@@ -557,7 +557,7 @@ Index: linux-4.9.54/net/ipv4/ip_output.c
  
 +	// dtc
 +	if (dtc_debugfs_enable & DTC_ENABLE_UDP &&
-+			dtc_debugfs_time_loc & DTC_IP_SEND &&
++			dtc_debugfs_time_loc & DTC_TIME_IP_SEND &&
 +			dtc_debugfs_target_ip == ((struct iphdr*) skb_network_header(skb))->daddr &&
 +			dtc_debugfs_target_port == ((struct udphdr*) skb_transport_header(skb))->dest){
 +		dtc_debugfs_log1((u8*)dtc_debugfs_skb_udp_payload(skb), 4);
