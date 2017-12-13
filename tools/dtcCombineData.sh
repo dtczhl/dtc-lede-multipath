@@ -7,9 +7,9 @@ FILE_PATH="$( cd "$(dirname "$0")"; pwd -P )"
 
 
 # starts from here --------
-if [ $# -lt 2 ]; then
+if [ $# -lt 1 ]; then
 	echo "**** Error "
-	echo "At least two files to combine"
+	echo "At least one filename"
 	exit
 fi 
 
@@ -25,6 +25,11 @@ for (( i = 1; i <= $#-1; i++ )); do
 		' $file1 $file2 > combine.temp_$i
 	file1=combine.temp_$i
 done
+
+# only 1 filename, still OK
+if [ $# -eq 1 ]; then
+	cp $file1 combine.temp_0
+fi 
 
 # reformat packet id
 (( i = i - 1 ))
