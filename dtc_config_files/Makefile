@@ -34,6 +34,8 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/bin/* $(1)/usr/bin/
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/files/config/* $(1)/etc/config/
+	$(INSTALL_DIR) $(1)/root
+	$(INSTALL_CONF) $(PKG_BUILD_DIR)/files/root/* $(1)/root/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

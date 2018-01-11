@@ -6,9 +6,10 @@
 recordId=1
 savePath=/dtc
 
-targetIp=192.168.21.191
-targetPort=50000
-selfPort=50000
+senderIp=192.168.21.1
+senderPort=50000
+receiverIp=192.168.21.191
+receiverPort=50000
 
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
@@ -29,6 +30,21 @@ Example: program -r
 EOF
 }
 
+readId(){
+	
+	if [ -f /root/autoId ]; then
+		recordId=$(cat /root/autoId) 
+	fi 
+}
+
+updateId(){
+
+	if [ -f /root/autoId ]; then 
+		recordId=$(( $recordId + 1 ))
+		echo $recordId > /root/autoId 
+	fi 
+}
+
 # starts from here --------
 if [ $# -ne 1 ]; then 
 	echo "**** Error"
@@ -36,23 +52,29 @@ if [ $# -ne 1 ]; then
 	exit
 fi
 
+readId 
+
 while getopts ":rls" opt; do
 	case $opt in
 	r) # run
-		myRunCmd="dtcDebugfsController.sh -s uima -r u -i $targetIp -p $targetPort -c enable"
-		echo $myRunCmd > $savePath/ReadMe$recordId 
+		date > $savePath/ReadMe$recordId 
+		myRunCmd="dtcDebugfsController.sh -s uima -r u -i $receiverIp -p $receiverPort -c enable"
+		echo $myRunCmd >> $savePath/ReadMe$recordId 
 		eval $myRunCmd
-		date >> $savePath/ReadMe$recordId 
 		if [ ! $selfPort -eq 0 ]; then
-			dtc_sock_client -i $targetIp -p $targetPort -c $selfPort -n 100000 > /dev/null &
+			dtc_sock_client -i $receiverIp -p $receiverPort -c $senderPort -n 100000 > /dev/null &
 		else
-			dtc_sock_client -i $targetIp -p $targetPort -n 100000 > /dev/null &
+			dtc_sock_client -i $receiverIp -p $receiverPort -n 100000 > /dev/null &
 		fi 
 		echo "Running..."
 		;;
 	l) # listen only
-		myListenCmd="dtcDebugfsController.sh -r u -i $targetIp -p $targetPort -c enable"
-		echo $myListenCmd > $savePath/ReadMe$recordId 
+		date > $savePath/ReadMe$recordId 
+		myListenCmd="dtc_sock_echo -i $receiverIp -p $receiverPort -d 2 &"
+		echo $myListenCmd >> $savePath/ReadMe$recordId 
+		eval $myListenCmd 
+		myListenCmd="dtcDebugfsController.sh -s uima -r u -i $senderIp -p $senderPort -c enable"
+		echo $myListenCmd >> $savePath/ReadMe$recordId 
 		eval $myListenCmd 
 		echo "Listening..."
 		;;
@@ -60,6 +82,8 @@ while getopts ":rls" opt; do
 		dtcDebugfsController.sh -c disable
 		date >> $savePath/ReadMe$recordId 
 		ps | grep dtc_sock_client | grep -v grep | awk '{print $1}' | xargs -r kill -9
+		ps | grep dtc_sock_server | grep -v grep | awk '{print $1}' | xargs -r kill -9
+		ps | grep dtc_sock_echo   | grep -v grep | awk '{print $1}' | xargs -r kill -9 
 		# modify to your needs
 		cat ${dtcSockDir}/log1 > ${savePath}/sockLog1_${recordId}
 		cat ${dtcSockDir}/log2 > ${savePath}/sockLog2_${recordId}
@@ -67,6 +91,8 @@ while getopts ":rls" opt; do
 		cat ${dtcMacDir}/log2 > ${savePath}/macLog2_${recordId}
 		cat ${dtcAthDir}/log1 > ${savePath}/athLog1_${recordId}
 		cat ${dtcAthDir}/log2 > ${savePath}/athLog2_${recordId}
+		
+		updateId 
 		echo "Save file done"
 		;;
 	\?) # error
