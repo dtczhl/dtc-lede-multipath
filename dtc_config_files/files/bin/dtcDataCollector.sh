@@ -11,6 +11,8 @@ senderPort=50000
 receiverIp=192.168.21.191
 receiverPort=50000
 
+selfPort=50000
+
 debugfsPath=/sys/kernel/debug
 dtcSockDir=${debugfsPath}/dtcSock
 dtcMacDir=${debugfsPath}/dtcMac
