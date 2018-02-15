@@ -1,4 +1,4 @@
-# an empty Makefile
+# An Empty Makefile
 #
 # Huanle Zhang
 # www.huanlezhang.com

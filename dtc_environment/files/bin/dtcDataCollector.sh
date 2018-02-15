@@ -3,7 +3,7 @@
 # Huanle Zhang
 # www.huanlezhang.com
 
-recordId=1
+recordId=0
 savePath=/dtc
 
 senderIp=192.168.21.1

@@ -16,11 +16,12 @@
 #include <time.h>
 #include <sys/types.h>
 #include <sys/select.h>
+#include <sys/time.h>
 
 #define SEND_BUF_LEN 2000
 #define RECV_BUF_LEN 5000
-static char sendBuf[SEND_BUF_LEN];
-static char recvBuf[RECV_BUF_LEN];
+static unsigned char sendBuf[SEND_BUF_LEN];
+static unsigned char recvBuf[RECV_BUF_LEN];
 
 static struct timespec delay;
 
@@ -34,22 +35,38 @@ fd_set rset;
 
 static unsigned int decimator = 0;
 
+// save data to file
+const char autoIdFilePath[] = "/root/autoId";
+const char dataFileDir[] = "/dtc";
+const char dataFileName[] = "dtcManySockClient";
+char dataRecvFileRealPath[128];
+
+int bRecvData = 0;
+int bSendData = 0;
+char dataSendFileRealPath[128];
+char dataRecvFileRealPath[128];
+FILE *fRecvDataFile = NULL;
+FILE *fSendDataFile = NULL;
+
+struct timeval tv;
+
 void die(const char *s){
     perror(s);
     exit(-1);
 }
 
 void printFormat(void){
-	printf("Format: program -s self_ip self_port -t target_ip target_port -n Interval(us) -d Decimation_left_shift \n");
+	printf("Format: program -s self_ip self_port -t target_ip target_port -n Interval(us) -d Decimation_left_shift -dRecv -dSend \n");
 	printf("Note, at most %d selfs and %d targets \n", MAX_PAIR, MAX_PAIR);
-	printf("	-s (required)	ip port; can specify multiple\n");
-	printf("	-t (required)	ip port; can specify multiple\n");
+	printf("	-s (required)		ip port; can specify multiple\n");
+	printf("	-t (required)		ip port; can specify multiple\n");
+	printf("	-dRecv (optional)	save recv packets data\n");
+	printf("	-dSend (optional)	save send packets data\n");
 	printf("	-n (optional)	packet interval in us, default: 0\n");
 	printf("	-d (optional)	decimation left shift of 1, default: 31\n");
 }
 
 void argumentProcess(int argc, char **argv){
-
 
 	// initialize
 	delay.tv_sec = 0;
@@ -96,10 +113,14 @@ void argumentProcess(int argc, char **argv){
 			} else {
 				die("-d option processing error");
 			}
+		} else if (strcmp(argv[i], "-dSend") == 0){ // log send data
+			bSendData = 1;
+		} else if (strcmp(argv[i], "-dRecv") == 0){ // log recv data
+			bRecvData = 1;
 		}
 	}
+
 	// check arguments
-	
 	if (selfSeq == 0 || targetSeq == 0){
 		die("No self or target");
 	}
@@ -123,6 +144,45 @@ void argumentProcess(int argc, char **argv){
 				inet_ntoa(si_yous[i].sin_addr), ntohs(si_yous[i].sin_port));
 	}
 }
+
+void dataFileProcess(void){
+	
+	if (!bSendData && !bRecvData){ // no need to save data
+		return;
+	}
+
+	FILE *fAutoId = NULL;
+	int recordId = 0;
+
+	// check autoId file exists or not
+	if (access(autoIdFilePath, F_OK) != -1){
+		// autoId exists
+		fAutoId = fopen(autoIdFilePath, "r");
+		if (fAutoId == NULL){
+			die("autoId file open failed");
+		}
+		fscanf(fAutoId, "%d", &recordId);
+		fclose(fAutoId);
+	}
+
+	snprintf(dataSendFileRealPath, sizeof(dataSendFileRealPath), "%s/%s_send_%d", dataFileDir, dataFileName, recordId);
+	snprintf(dataRecvFileRealPath, sizeof(dataRecvFileRealPath), "%s/%s_recv_%d", dataFileDir, dataFileName, recordId);
+
+	if (bRecvData){
+		fRecvDataFile = fopen(dataRecvFileRealPath, "w");
+		if (fRecvDataFile == NULL){
+			die("cannot open file for fRecvDataFile");
+		}
+	}
+
+	if (bSendData){
+		fSendDataFile = fopen(dataSendFileRealPath, "w");
+		if (fSendDataFile == NULL){
+			die("cannot open file for fSendDataFile");
+		}
+	}
+
+}
     
 static int sock[MAX_PAIR];
 static int sock_len[MAX_PAIR];
@@ -132,15 +192,12 @@ static unsigned int packet_send = 0;
 
 static unsigned int packet_recv = 0;
 
-void childProcess(void){
+static int maxfd = 0;
 
-	int maxfd = 0;
+void childProcess(void){
 	
-	for (int i = 0; i < selfSeq; i++){
-		if (sock[i] > maxfd){
-			maxfd = sock[i];
-		}
-	}
+	int slen, recv_len = 0;
+	struct sockaddr_in si_you;
 
 	while(1){
 
@@ -154,15 +211,31 @@ void childProcess(void){
 
 		for (int i = 0; i < selfSeq; i++){
 			if (FD_ISSET(sock[i], &rset)){
-				recv(sock[i], recvBuf, RECV_BUF_LEN, 0);
+				if ((recv_len = recvfrom(sock[i], recvBuf, RECV_BUF_LEN, 0,
+									(struct sockaddr *) &si_you, &slen)) == -1){
+					die("recvfrom()");
+				};
+
+				if (bRecvData){
+					gettimeofday(&tv, NULL);
+					fprintf(fRecvDataFile, "%u %lu %lu %u-%u-%u-%u-\n",
+								si_you.sin_addr.s_addr,
+								tv.tv_sec, tv.tv_usec,
+								recvBuf[0], recvBuf[1], recvBuf[2], recvBuf[3]);
+				}
+
 				packet_recv++;
+				if (packet_recv % decimator == 0) {
+					printf("total packet recv count: %u From %s %d \n", packet_recv,
+								inet_ntoa(si_you.sin_addr),
+								ntohs(si_you.sin_port));
+				}
 			}
 		}
-        if (packet_recv % decimator == 0) {
-            printf("packet recv: %u\n", packet_recv);
-        }
-
-	}
+		if (bRecvData){
+			fflush(fRecvDataFile);
+		}
+ 	}
 }
 
 void parentProcess(void){
@@ -185,10 +258,18 @@ void parentProcess(void){
 			}	
 		}
 
+		if (bSendData){
+			gettimeofday(&tv, NULL);
+			fprintf(fSendDataFile, "%lu %lu %u-%u-%u-%u-\n",
+							tv.tv_sec, tv.tv_usec,
+							sendBuf[0], sendBuf[1], sendBuf[2], sendBuf[3]);
+			fflush(fSendDataFile);
+		}
+
         packet_send++;
         
         if (packet_send % decimator == 0) {
-            printf("packet send: %u\n", packet_send);
+            printf("unique packet send: %u\n", packet_send);
         }
 
     }
@@ -215,12 +296,25 @@ int main(int argc, char **argv){
 		} 
 	}
 
+	for (int i = 0; i < selfSeq; i++){
+		if (sock[i] > maxfd){
+			maxfd = sock[i];
+		}
+	}
+
+	dataFileProcess();
+
+
 // two processes: one for sending, the other for receiving
 	pid_t pid = fork();
 	if (pid == 0){
 		childProcess();
 	} else {
 		parentProcess();	
+	}
+
+	if (bSendData){
+		fclose(fSendDataFile);
 	}
 
     return 0;

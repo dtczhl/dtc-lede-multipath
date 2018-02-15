@@ -1,0 +1,54 @@
+#!/bin/sh /etc/rc.common
+# 
+# Setup environment
+#
+# Huanle Zhang at UC Davis
+# www.huanlezhang.com
+
+# last start
+START=z0
+# first stop 
+STOP=000z
+
+start(){
+	
+	dtcRoot="/dtcRoot"
+	dtcBackupDir="${dtcRoot}/backup"
+	dtcDebugDir="${dtcRoot}/debug"
+	dtcEnvFile="${dtcRoot}/dtcEnvVariables"
+	dtcTmp="/tmp/dtc"
+
+	# tmp folder for dtc
+	mkdir -p $dtcTmp
+
+	# clear debug files
+	cat /dev/null > ${dtcDebugDir}/environment
+
+	echo "$(date) dtc_environment START" > ${dtcDebugDir}/environment
+
+	# change ash to bash
+	sed -i -e 's#/root:/bin/ash#/root:/bin/bash#' /etc/passwd 
+
+	# /etc/profile
+	if [ -f "${dtcBackupDir}/etc/profile" ]; then
+		# recover to the original one
+		cp -p ${dtcBackupDir}/etc/profile /etc/profile
+	else
+		# save the original one
+		mkdir -p ${dtcBackupDir}/etc/
+		cp -p /etc/profile ${dtcBackupDir}/etc/profile 
+	fi
+
+	if [ -f "${dtcEnvFile}" ]; then
+		cp -p ${dtcBackupDir}/etc/profile ${dtcTmp}/profile
+		cat ${dtcEnvFile} >> ${dtcTmp}/profile
+		cp -p ${dtcTmp}/profile /etc/profile 
+	else 
+		# Error
+		echo "$(date) *** Error: ${dtcEnvFile} does not exist!" >> ${dtcDebugDir}/environment
+	fi 
+}
+
+stop(){
+	echo "$(date) dtc_environment STOP" >> ${dtcDebugDir}/environment 
+}

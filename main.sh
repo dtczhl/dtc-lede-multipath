@@ -143,7 +143,7 @@ while getopts ":hikuplw" opt; do
     p)  # packages 
 		check_caller_loc 
         echo -e "${HEAD_COLOR} -------- install customized packages ${NC}"
-        cp -v -r dtc-lede-multipath/dtc_config_files package/feeds/
+        cp -v -r dtc-lede-multipath/dtc_environment package/feeds/
         cp -v -r dtc-lede-multipath/dtc_packages/* package/feeds/
         echo -e "${TAIL_COLOR} -------- install customized packages done -------- ${NC}"
         exit

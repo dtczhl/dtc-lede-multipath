@@ -1,0 +1,23 @@
+# 
+# Menuconfig options for dtc_environment
+#
+# Huanle Zhang at UC Davis
+# www.huanlezhang.com
+#
+#
+# output:
+#	CONFIG_DTC_HOST_ETH_IP
+#	CONFIG_DTC_HOST_NAME
+
+config DTC_ETH_IP
+    string "Ethernet IP Address"
+	help
+		Override IP address
+    default 192.168.3.1
+
+config DTC_HOST_NAME
+	string "Host Name"
+	help
+		Override host name
+	default dtc 
+

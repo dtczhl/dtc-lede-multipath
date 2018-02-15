@@ -1,0 +1,20 @@
+
+# dtc environment variables 
+
+export dtcRoot=/dtcRoot
+export dtcBin=/usr/dtcBin
+export dtcConfig=/etc/dtcConfig
+
+export dtcDebugDir=$dtcRoot/debug
+export dtcBackupDir=$dtcRoot/backup
+
+# remove it first
+PATH=$(echo $PATH | sed -e "s#:${dtcBin}##")
+PATH=$(echo $PATH | sed -e "s#:${dtcBin}##")
+PATH=$(echo $PATH | sed -e "s#:${dtcBin}##")
+PATH=$(echo $PATH | sed -e "s#:${dtcBin}##")
+PATH=$(echo $PATH | sed -e "s#:${dtcBin}##")
+export PATH=$PATH:$dtcBin
+
+## dtc ended
+
