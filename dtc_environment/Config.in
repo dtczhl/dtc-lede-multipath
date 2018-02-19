@@ -19,5 +19,5 @@ config DTC_HOST_NAME
 	string "Host Name"
 	help
 		Override host name
-	default dtc 
+	default DTC 
 

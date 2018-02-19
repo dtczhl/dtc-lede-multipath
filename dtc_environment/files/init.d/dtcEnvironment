@@ -15,7 +15,7 @@ start(){
 	dtcRoot="/dtcRoot"
 	dtcBackupDir="${dtcRoot}/backup"
 	dtcDebugDir="${dtcRoot}/debug"
-	dtcEnvFile="${dtcRoot}/dtcEnvVariables"
+	dtcEnvFile="${dtcRoot}/dtcEnvironmentSetup"
 	dtcTmp="/tmp/dtc"
 
 	# tmp folder for dtc
@@ -27,25 +27,30 @@ start(){
 	echo "$(date) dtc_environment START" > ${dtcDebugDir}/environment
 
 	# change ash to bash
-	sed -i -e 's#/root:/bin/ash#/root:/bin/bash#' /etc/passwd 
-
-	# /etc/profile
-	if [ -f "${dtcBackupDir}/etc/profile" ]; then
-		# recover to the original one
-		cp -p ${dtcBackupDir}/etc/profile /etc/profile
+	if [ -x "/bin/bash" ]; then
+		# only if bash exist
+		sed -i -e 's#/root:/bin/ash#/root:/bin/bash#' /etc/passwd 
 	else
-		# save the original one
-		mkdir -p ${dtcBackupDir}/etc/
-		cp -p /etc/profile ${dtcBackupDir}/etc/profile 
-	fi
+		echo "$(date) *** dtc_environment /bin/bash does not exist" >> ${dtcDebugDir}/environment 
+	fi 
 
-	if [ -f "${dtcEnvFile}" ]; then
-		cp -p ${dtcBackupDir}/etc/profile ${dtcTmp}/profile
-		cat ${dtcEnvFile} >> ${dtcTmp}/profile
-		cp -p ${dtcTmp}/profile /etc/profile 
-	else 
-		# Error
-		echo "$(date) *** Error: ${dtcEnvFile} does not exist!" >> ${dtcDebugDir}/environment
+	
+	if [ ! -f "${dtcBackupDir}/etc/profile" ]; then
+
+		# /etc/profile
+		mkdir -p ${dtcBackupDir}/etc/
+		cp -p /etc/profile ${dtcBackupDir}/etc/profile
+		
+		# /etc/config/network
+		mkdir -p ${dtcBackupDir}/etc/config/
+		cp -p /etc/config/network ${dtcBackupDir}/etc/config/network
+		
+		# /etc/config/system
+		mkdir -p ${dtcBackupDir}/etc/config/
+		cp -p /etc/config/system ${dtcBackupDir}/etc/config/system 
+
+		# commands in the file of ${dtcEnvFile}
+		cat ${dtcEnvFile} >> /etc/profile 
 	fi 
 }
 

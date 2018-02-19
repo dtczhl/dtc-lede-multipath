@@ -3,7 +3,7 @@ include $(TOPDIR)/rules.mk
 # Huanle Zhang
 # www.huanlezhang.com
 #
-# Global Variables:
+# Global Environment Variables:
 # 	dtcBin: bin folder
 # 	dtcConfig: config folder
 # 	dtcRoot: root folder
@@ -52,6 +52,8 @@ endef
 
 define Package/$(PKG_NAME)/install
 
+	rm -rf $(1)$(dtcRoot) 
+
 	$(INSTALL_DIR) $(1)$(dtcBin)/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/bin/* $(1)$(dtcBin)/
 
@@ -67,6 +69,9 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)$(dtcDebugDir)
 	$(INSTALL_DIR) $(1)$(dtcBackupDir)
 
+	echo "IP=$(CONFIG_DTC_ETH_IP)" > $(1)$(dtcRoot)/dtcConfigs
+	echo "HOSTNAME=$(CONFIG_DTC_HOST_NAME)" >> $(1)$(dtcRoot)/dtcConfigs
+	
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))

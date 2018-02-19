@@ -30,7 +30,7 @@ argumentProcess(){
 			-s) # enable interfaces
 				for (( i=0; i<${#myInterfaces[@]}; i++ )); do
 					myCmd="wpa_supplicant -B -i${myInterfaces[$i]} -c${dtcConfig}/${myConfigFiles[$i]} -D${myDrivers[$i]}"
-					dtcKillProgram.sh "$myCmd"
+					dtcKillProgram "$myCmd"
 					eval $myCmd 
 				done 
 				shift
@@ -38,7 +38,7 @@ argumentProcess(){
 			-k) # stop interfaces
 				for (( i=0; i<${#myInterfaces[@]}; i++ )); do
 					myCmd="wpa_supplicant -B -i${myInterfaces[$i]} -c${dtcConfig}/${myConfigFiles[$i]} -D${myDrivers[$i]}"
-					dtcKillProgram.sh "$myCmd"
+					dtcKillProgram "$myCmd"
 				done 
 				shift
 			;;
