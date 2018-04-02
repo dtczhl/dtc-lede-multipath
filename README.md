@@ -1,6 +1,6 @@
 # Customized tools, scripts, configuration files for my project
 
-Under developing... Badly documented...
+** This repo is deprecated **
 
 Huanle Zhang
 
